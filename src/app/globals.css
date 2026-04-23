@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #F5F3EE;
+  --ink: #0E0E0E;
+  --ink-2: #1C1C1A;
+  --muted: #7A766E;
+  --line: #E3DFD6;
+  --card: #FFFFFF;
+  --accent: #B6754C;
+  --accent-ink: #FFFFFF;
+  --dark: #0E0E0E;
+  --dark-card: #161614;
+  --dark-line: #2A2824;
+  --dark-muted: #8C8A83;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+button { font-family: inherit; cursor: pointer; }
+input, textarea { font-family: inherit; }
+
+/* Hide horizontal scrollbars in pickers but keep scrollable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* barber-pole stripe */
+.stripe {
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 14px,
+    var(--bg) 14px 22px,
+    var(--accent) 22px 36px,
+    var(--bg) 36px 44px
+  );
+}
