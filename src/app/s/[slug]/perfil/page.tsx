@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getShopBySlug } from '@/lib/shop-context';
 import { TabBar } from '@/components/client/TabBar';
 import { Icon } from '@/components/shared/Icon';
 import { Avatar } from '@/components/shared/Avatar';
@@ -11,13 +12,18 @@ export const dynamic = 'force-dynamic';
 
 const APP_VERSION = 'v0.1.0';
 
-export default async function PerfilPage() {
+export default async function PerfilPage({ params }: { params: { slug: string } }) {
+  const shop = await getShopBySlug(params.slug);
+  if (!shop) notFound();
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (!user) redirect(`/login?next=/s/${params.slug}/perfil`);
 
   const { data: profile } = await supabase
-    .from('profiles').select('name, email, phone, is_admin').eq('id', user.id).maybeSingle();
+    .from('profiles').select('name, email, phone, is_admin').eq('id', user.id).maybeSingle<{
+      name: string | null; email: string | null; phone: string | null; is_admin: boolean;
+    }>();
 
   const initials = (profile?.name || user.email || 'U')
     .split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase();
@@ -60,11 +66,11 @@ export default async function PerfilPage() {
         </form>
 
         <div className="mt-8 text-center font-mono text-[10px] tracking-[2px] text-muted">
-          EL ESTUDIO · {APP_VERSION}
+          {shop.name.toUpperCase()} · {APP_VERSION}
         </div>
       </div>
 
-      <TabBar />
+      <TabBar slug={params.slug} />
     </main>
   );
 }

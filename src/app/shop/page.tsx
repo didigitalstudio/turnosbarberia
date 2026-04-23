@@ -1,12 +1,16 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getAdminShop } from '@/lib/shop-context';
 import { ShopHeader, ShopTabs } from '@/components/shop/ShopHeader';
 import { ShopTabBar } from '@/components/shop/ShopTabBar';
 import { AgendaView } from '@/components/shop/AgendaView';
-import { SHOP } from '@/lib/shop-info';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ShopAgendaPage({ searchParams }: { searchParams: { d?: string } }) {
+  const shop = await getAdminShop();
+  if (!shop) redirect('/login?error=no_shop');
+
   const supabase = createClient();
   const dayISO = searchParams.d || todayISO();
   const start = new Date(dayISO + 'T00:00:00-03:00');
@@ -16,16 +20,17 @@ export default async function ShopAgendaPage({ searchParams }: { searchParams: {
     supabase
       .from('appointments')
       .select('id, starts_at, ends_at, customer_name, status, services(name, duration_mins, price), barbers(id, name, initials, hue)')
+      .eq('shop_id', shop.id)
       .gte('starts_at', start.toISOString())
       .lt('starts_at', end.toISOString())
       .neq('status', 'cancelled')
       .order('starts_at'),
-    supabase.from('barbers').select('*').eq('is_active', true)
+    supabase.from('barbers').select('*').eq('shop_id', shop.id).eq('is_active', true)
   ]);
 
   return (
     <main className="min-h-screen flex flex-col">
-      <ShopHeader subtitle="Dashboard" title={SHOP.name} action="search"/>
+      <ShopHeader subtitle="Dashboard" title={shop.name} action="search"/>
       <ShopTabs active="agenda"/>
       <AgendaView appointments={(appts as any) || []} barbers={barbers || []} dayISO={dayISO}/>
       <ShopTabBar/>

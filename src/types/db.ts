@@ -2,8 +2,21 @@ export type AppointmentStatus = 'pending' | 'confirmed' | 'in_progress' | 'compl
 export type SaleType = 'service' | 'product';
 export type PaymentMethod = 'efectivo' | 'transferencia' | 'debito' | 'credito';
 
+export type Shop = {
+  id: string;
+  slug: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  timezone: string;
+  owner_id: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
 export type Service = {
   id: string;
+  shop_id: string;
   name: string;
   description: string | null;
   duration_mins: number;
@@ -14,6 +27,7 @@ export type Service = {
 
 export type Barber = {
   id: string;
+  shop_id: string;
   name: string;
   slug: string;
   role: string | null;
@@ -27,6 +41,7 @@ export type Barber = {
 
 export type Schedule = {
   id: string;
+  shop_id: string;
   barber_id: string;
   day_of_week: number; // 0=Dom, 1=Lun ... 6=Sab
   start_time: string; // 'HH:MM'
@@ -40,11 +55,13 @@ export type Profile = {
   phone: string | null;
   email: string | null;
   is_admin: boolean;
+  shop_id: string | null;
   created_at: string;
 };
 
 export type Appointment = {
   id: string;
+  shop_id: string;
   profile_id: string | null;
   barber_id: string;
   service_id: string;
@@ -61,6 +78,7 @@ export type Appointment = {
 
 export type Product = {
   id: string;
+  shop_id: string;
   name: string;
   price: number;
   stock: number;
@@ -70,6 +88,7 @@ export type Product = {
 
 export type Sale = {
   id: string;
+  shop_id: string;
   type: SaleType;
   appointment_id: string | null;
   product_id: string | null;
@@ -82,6 +101,7 @@ export type Sale = {
 export type Database = {
   public: {
     Tables: {
+      shops: { Row: Shop; Insert: Partial<Shop>; Update: Partial<Shop> };
       services: { Row: Service; Insert: Partial<Service>; Update: Partial<Service> };
       barbers: { Row: Barber; Insert: Partial<Barber>; Update: Partial<Barber> };
       schedules: { Row: Schedule; Insert: Partial<Schedule>; Update: Partial<Schedule> };

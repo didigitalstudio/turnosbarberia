@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getAdminShop } from '@/lib/shop-context';
 import { ShopHeader, ShopTabs } from '@/components/shop/ShopHeader';
 import { ShopTabBar } from '@/components/shop/ShopTabBar';
 import { CashView } from '@/components/shop/CashView';
@@ -6,6 +8,9 @@ import { CashView } from '@/components/shop/CashView';
 export const dynamic = 'force-dynamic';
 
 export default async function ShopCashPage() {
+  const shop = await getAdminShop();
+  if (!shop) redirect('/login?error=no_shop');
+
   const supabase = createClient();
   const start = new Date(); start.setHours(0,0,0,0);
   const end   = new Date(start); end.setDate(end.getDate() + 1);
@@ -14,10 +19,11 @@ export default async function ShopCashPage() {
     supabase
       .from('sales')
       .select('*')
+      .eq('shop_id', shop.id)
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())
       .order('created_at', { ascending: false }),
-    supabase.from('products').select('*').eq('is_active', true).order('name')
+    supabase.from('products').select('*').eq('shop_id', shop.id).eq('is_active', true).order('name')
   ]);
 
   return (

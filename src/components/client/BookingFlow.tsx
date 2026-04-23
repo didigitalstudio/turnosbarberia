@@ -13,8 +13,9 @@ import type { Service, Barber } from '@/types/db';
 type Slot = { time: string; iso: string; taken: boolean };
 
 export function BookingFlow({
-  services, barbers, preselectedService, preselectedBarber, profile
+  shopSlug, services, barbers, preselectedService, preselectedBarber, profile
 }: {
+  shopSlug: string;
   services: Service[]; barbers: Barber[];
   preselectedService?: string; preselectedBarber?: string;
   profile: { name: string; email: string | null; phone: string | null } | null;
@@ -52,7 +53,7 @@ export function BookingFlow({
   useEffect(() => {
     if (!serviceId || !dateISO) { setSlots([]); return; }
     setLoadingSlots(true);
-    fetch(`/api/availability?barberId=${barberId}&serviceId=${serviceId}&date=${dateISO}`)
+    fetch(`/api/availability?shopSlug=${shopSlug}&barberId=${barberId}&serviceId=${serviceId}&date=${dateISO}`)
       .then(r => r.json())
       .then(d => setSlots(d.slots || []))
       .finally(() => setLoadingSlots(false));
@@ -65,7 +66,7 @@ export function BookingFlow({
     <main className="min-h-screen flex flex-col">
       <header className="px-5 pt-3 pb-3 flex items-center gap-3.5">
         {step === 1 ? (
-          <Link href="/" className="w-11 h-11 -ml-1 rounded-l bg-card border border-line grid place-items-center active:scale-95 transition" aria-label="Volver al inicio">
+          <Link href={`/s/${shopSlug}`} className="w-11 h-11 -ml-1 rounded-l bg-card border border-line grid place-items-center active:scale-95 transition" aria-label="Volver al inicio">
             <Icon name="arrow-left" size={18}/>
           </Link>
         ) : (
@@ -323,6 +324,7 @@ export function BookingFlow({
             onClick={() => start(async () => {
               setError(null);
               const res = await createBooking({
+                shopSlug,
                 serviceId: serviceId!,
                 barberId: barberId as any,
                 startsAt: slotISO!,

@@ -8,16 +8,21 @@ function pad(n: number) { return n.toString().padStart(2, '0'); }
 function hmToMin(hm: string) { const [h, m] = hm.split(':').map(Number); return h * 60 + m; }
 function minToHM(mins: number) { return `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`; }
 
-export async function getAvailableSlots(barberId: string, serviceId: string, dateISO: string) {
+export async function getAvailableSlots(shopId: string, barberId: string, serviceId: string, dateISO: string) {
   const supabase = createServerClient();
   const date = new Date(dateISO + 'T00:00:00-03:00');
   const dayOfWeek = date.getDay();
 
   const [{ data: service }, { data: schedule }, { data: appts }] = await Promise.all([
-    supabase.from('services').select('duration_mins').eq('id', serviceId).single(),
-    supabase.from('schedules').select('*').eq('barber_id', barberId).eq('day_of_week', dayOfWeek).maybeSingle(),
+    supabase.from('services').select('duration_mins').eq('id', serviceId).eq('shop_id', shopId).single(),
+    supabase.from('schedules').select('*')
+      .eq('shop_id', shopId)
+      .eq('barber_id', barberId)
+      .eq('day_of_week', dayOfWeek)
+      .maybeSingle(),
     supabase.from('appointments')
       .select('starts_at, ends_at')
+      .eq('shop_id', shopId)
       .eq('barber_id', barberId)
       .gte('starts_at', new Date(date.getTime()).toISOString())
       .lt('starts_at', new Date(date.getTime() + 86400000).toISOString())

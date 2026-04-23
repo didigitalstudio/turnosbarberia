@@ -10,6 +10,11 @@ export async function enterDemo(role: Role) {
   const account = DEMO[role];
   const admin = createAdminClient();
 
+  // 0. Fetch demo shop (we need its id to stamp profile and appointments)
+  const { data: demoShop } = await admin
+    .from('shops').select('id, slug').eq('slug', 'demo').maybeSingle<{ id: string; slug: string }>();
+  if (!demoShop) return { error: 'Falta el shop demo. Aplicá el seed inicial.' };
+
   // 1. Ensure user exists
   let userId: string | null = null;
   const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
@@ -29,17 +34,18 @@ export async function enterDemo(role: Role) {
     userId = data.user.id;
   }
 
-  // 2. Upsert profile (set is_admin for dueño)
+  // 2. Upsert profile (set is_admin for dueño, and associate with demo shop)
   await admin.from('profiles').upsert({
     id: userId!,
     name: account.name,
     email: account.email,
     phone: account.phone,
-    is_admin: role === 'dueno'
+    is_admin: role === 'dueno',
+    shop_id: demoShop.id
   });
 
   // 3. Refresh demo data if needed
-  const seedErr = await ensureDemoData();
+  const seedErr = await ensureDemoData(demoShop.id);
   if (seedErr) return { error: seedErr };
 
   // 4. Sign in (cookies set by createClient)
@@ -51,7 +57,7 @@ export async function enterDemo(role: Role) {
   if (error) return { error: 'No se pudo iniciar sesión demo: ' + error.message };
 
   revalidatePath('/', 'layout');
-  redirect(role === 'dueno' ? '/shop' : '/');
+  redirect(role === 'dueno' ? '/shop' : `/s/${demoShop.slug}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,35 +65,36 @@ export async function enterDemo(role: Role) {
 // Cleans up demo records older than 7 days.
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function ensureDemoData(): Promise<string | null> {
+async function ensureDemoData(shopId: string): Promise<string | null> {
   const admin = createAdminClient();
   const today = startOfDay(new Date());
   const tomorrow = new Date(today.getTime() + 86400000);
 
   // Cleanup demo data older than 7 days
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-  await admin.from('appointments').delete().like('notes', `${DEMO_NOTE}%`).lt('starts_at', sevenDaysAgo);
-  await admin.from('sales').delete().like('customer_name', `%${DEMO_SALE_TAG}`).lt('created_at', sevenDaysAgo);
+  await admin.from('appointments').delete().eq('shop_id', shopId).like('notes', `${DEMO_NOTE}%`).lt('starts_at', sevenDaysAgo);
+  await admin.from('sales').delete().eq('shop_id', shopId).like('customer_name', `%${DEMO_SALE_TAG}`).lt('created_at', sevenDaysAgo);
 
   // Already seeded for today?
   const { count } = await admin
     .from('appointments')
     .select('id', { count: 'exact', head: true })
+    .eq('shop_id', shopId)
     .like('notes', `${DEMO_NOTE}%`)
     .gte('starts_at', today.toISOString())
     .lt('starts_at', tomorrow.toISOString());
   if ((count ?? 0) >= 8) return null;
 
   // Wipe partial demo data for today/future to avoid overlap conflicts
-  await admin.from('appointments').delete().like('notes', `${DEMO_NOTE}%`).gte('starts_at', today.toISOString());
-  await admin.from('sales').delete().like('customer_name', `%${DEMO_SALE_TAG}`).gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString());
+  await admin.from('appointments').delete().eq('shop_id', shopId).like('notes', `${DEMO_NOTE}%`).gte('starts_at', today.toISOString());
+  await admin.from('sales').delete().eq('shop_id', shopId).like('customer_name', `%${DEMO_SALE_TAG}`).gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString());
 
-  // Lookups
+  // Lookups (all scoped to demo shop)
   const [{ data: barbers }, { data: services }, { data: clienteProfile }, { data: products }] = await Promise.all([
-    admin.from('barbers').select('id, slug').order('created_at'),
-    admin.from('services').select('id, name, duration_mins, price'),
+    admin.from('barbers').select('id, slug').eq('shop_id', shopId).order('created_at'),
+    admin.from('services').select('id, name, duration_mins, price').eq('shop_id', shopId),
     admin.from('profiles').select('id').eq('email', DEMO.cliente.email).maybeSingle(),
-    admin.from('products').select('id, name, price')
+    admin.from('products').select('id, name, price').eq('shop_id', shopId)
   ]);
 
   if (!barbers || barbers.length === 0 || !services || services.length === 0) {
@@ -128,6 +135,7 @@ async function ensureDemoData(): Promise<string | null> {
     const start = new Date(today); start.setHours(h, m, 0, 0);
     const end = new Date(start.getTime() + svc.duration_mins * 60_000);
     inserts.push({
+      shop_id: shopId,
       profile_id: s.clientLink ? clienteId : null,
       barber_id: barberId,
       service_id: svc.id,
@@ -155,6 +163,7 @@ async function ensureDemoData(): Promise<string | null> {
       const [h, m] = f.time.split(':').map(Number);
       d.setHours(h, m, 0, 0);
       inserts.push({
+        shop_id: shopId,
         profile_id: clienteId, barber_id: barberId, service_id: svc.id,
         customer_name: DEMO.cliente.name, customer_phone: DEMO.cliente.phone,
         customer_email: DEMO.cliente.email,
@@ -174,6 +183,7 @@ async function ensureDemoData(): Promise<string | null> {
       const [h, m] = p.time.split(':').map(Number);
       d.setHours(h, m, 0, 0);
       inserts.push({
+        shop_id: shopId,
         profile_id: clienteId, barber_id: barberId, service_id: svc.id,
         customer_name: DEMO.cliente.name, customer_phone: DEMO.cliente.phone,
         customer_email: DEMO.cliente.email,
@@ -200,6 +210,7 @@ async function ensureDemoData(): Promise<string | null> {
   const salesInserts = salesSeeds.map(s => {
     const created = new Date(today); created.setHours(s.hour, s.min, 0, 0);
     return {
+      shop_id: shopId,
       type: s.type,
       product_id: s.productName ? findProduct(s.productName)?.id || null : null,
       amount: s.amount,

@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getShopBySlug } from '@/lib/shop-context';
 import { Icon } from '@/components/shared/Icon';
 import { Avatar } from '@/components/shared/Avatar';
 import { Pill } from '@/components/shared/Pill';
@@ -9,16 +10,19 @@ import { EmptyState } from '@/components/shared/EmptyState';
 
 export const dynamic = 'force-dynamic';
 
-export default async function EquipoPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+export default async function EquipoPage({ params }: { params: { slug: string } }) {
+  const shop = await getShopBySlug(params.slug);
+  if (!shop) notFound();
 
+  const supabase = createClient();
   const { data: barbers } = await supabase
     .from('barbers')
     .select('id, name, slug, role, initials, hue, rating, bio')
+    .eq('shop_id', shop.id)
     .eq('is_active', true)
     .order('rating', { ascending: false });
+
+  const slug = params.slug;
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -36,7 +40,7 @@ export default async function EquipoPage() {
             title="Sin equipo cargado"
             description="Pronto vas a poder ver y elegir a tu barbero favorito."
             ctaLabel="Reservar de todas formas"
-            ctaHref="/reservar"
+            ctaHref={`/s/${slug}/reservar`}
           />
         ) : (
           <div className="flex flex-col gap-3">
@@ -56,7 +60,7 @@ export default async function EquipoPage() {
                   {b.bio && (
                     <p className="text-[12px] text-muted mt-1.5 line-clamp-2">{b.bio}</p>
                   )}
-                  <Link href={`/reservar?barber=${b.id}`}
+                  <Link href={`/s/${slug}/reservar?barber=${b.id}`}
                     className="inline-flex items-center gap-1.5 mt-2.5 text-[12px] font-semibold text-accent active:opacity-60 transition">
                     Reservar con {b.name.split(' ')[0]}
                     <Icon name="arrow-right" size={14} color="#B6754C"/>
@@ -65,7 +69,7 @@ export default async function EquipoPage() {
               </article>
             ))}
 
-            <Link href="/reservar"
+            <Link href={`/s/${slug}/reservar`}
               className="mt-2 bg-ink text-bg rounded-2xl px-4 py-4 text-center text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition">
               <Icon name="plus" size={16} color="#F5F3EE"/>
               Reservar sin elegir barbero
@@ -74,7 +78,7 @@ export default async function EquipoPage() {
         )}
       </div>
 
-      <TabBar />
+      <TabBar slug={slug} />
     </main>
   );
 }

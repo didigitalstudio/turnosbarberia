@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getAdminShop } from '@/lib/shop-context';
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -9,6 +10,9 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
   const { data: profile } = await supabase
     .from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
   if (!profile?.is_admin) redirect('/');
+
+  const shop = await getAdminShop();
+  if (!shop) redirect('/login?error=no_shop');
 
   return (
     <div className="min-h-screen bg-dark text-bg">

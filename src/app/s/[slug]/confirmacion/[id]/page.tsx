@@ -1,20 +1,24 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/server';
+import { getShopBySlug } from '@/lib/shop-context';
 import { Icon } from '@/components/shared/Icon';
 import { Stripe } from '@/components/shared/Stripe';
 import { ConfirmationActions } from '@/components/client/ConfirmationActions';
 import { money } from '@/lib/format';
-import { SHOP } from '@/lib/shop-info';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ConfirmationPage({ params }: { params: { id: string } }) {
+export default async function ConfirmationPage({ params }: { params: { slug: string; id: string } }) {
+  const shop = await getShopBySlug(params.slug);
+  if (!shop) notFound();
+
   const sb = createAdminClient();
   const { data: appt } = await sb
     .from('appointments')
     .select('id, starts_at, ends_at, customer_name, services(name, duration_mins, price), barbers(name)')
     .eq('id', params.id)
+    .eq('shop_id', shop.id)
     .maybeSingle();
 
   if (!appt) return notFound();
@@ -30,7 +34,7 @@ export default async function ConfirmationPage({ params }: { params: { id: strin
     <main className="min-h-screen flex flex-col px-5 pt-5 pb-7">
       <div className="flex justify-end">
         <Link
-          href="/"
+          href={`/s/${params.slug}`}
           className="w-9 h-9 rounded-l bg-card border border-line grid place-items-center active:scale-95 transition"
           aria-label="Cerrar y volver al inicio"
         >
@@ -82,8 +86,8 @@ export default async function ConfirmationPage({ params }: { params: { id: strin
 
         <div className="px-5 py-4 flex items-center gap-3.5">
           <div className="text-[11px] text-muted flex-1">
-            {SHOP.address ? (<>{SHOP.address}<br /></>) : null}
-            {SHOP.name}{SHOP.city ? ` · ${SHOP.city}` : ''}
+            {shop.address ? (<>{shop.address}<br /></>) : null}
+            {shop.name}
           </div>
           <div
             className="w-14 h-14 rounded-s"
@@ -101,6 +105,8 @@ export default async function ConfirmationPage({ params }: { params: { id: strin
       <div className="flex-1" />
 
       <ConfirmationActions
+        shopName={shop.name}
+        shopAddress={shop.address}
         startISO={a.starts_at}
         endISO={end.toISOString()}
         service={a.services?.name || 'Turno'}
@@ -109,7 +115,7 @@ export default async function ConfirmationPage({ params }: { params: { id: strin
       />
 
       <Link
-        href="/mis-turnos"
+        href={`/s/${params.slug}/mis-turnos`}
         className="text-center text-[13px] text-muted underline mt-4 py-2"
       >
         Ver mis turnos

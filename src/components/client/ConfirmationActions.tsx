@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Icon } from '@/components/shared/Icon';
-import { SHOP, PRODUCT } from '@/lib/shop-info';
+import { PRODUCT } from '@/lib/shop-info';
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function toICSDate(d: Date) {
@@ -9,8 +9,10 @@ function toICSDate(d: Date) {
 }
 
 export function ConfirmationActions({
-  startISO, endISO, service, barber, orderNum
+  shopName, shopAddress, startISO, endISO, service, barber, orderNum
 }: {
+  shopName: string;
+  shopAddress: string | null;
   startISO: string;
   endISO: string;
   service: string;
@@ -22,8 +24,8 @@ export function ConfirmationActions({
   const { icsHref, gcalHref, shareText } = useMemo(() => {
     const start = new Date(startISO);
     const end = new Date(endISO);
-    const title = `Turno en ${SHOP.name} · ${service}`;
-    const addressLine = SHOP.address ? `${SHOP.address}${SHOP.city ? `, ${SHOP.city}` : ''}` : SHOP.city;
+    const title = `Turno en ${shopName} · ${service}`;
+    const addressLine = shopAddress || '';
     const details = `Con ${barber}. N° ${orderNum}${addressLine ? `. Dirección: ${addressLine}` : ''}.`;
     const location = addressLine;
     const uidDomain = PRODUCT.name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -52,15 +54,15 @@ export function ConfirmationActions({
       `&details=${encodeURIComponent(details)}` +
       (location ? `&location=${encodeURIComponent(location)}` : '');
 
-    const shareText = `Reservé turno en ${SHOP.name}: ${service} con ${barber}, ${start.toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}hs.`;
+    const shareText = `Reservé turno en ${shopName}: ${service} con ${barber}, ${start.toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}hs.`;
     return { icsHref, gcalHref, shareText };
-  }, [startISO, endISO, service, barber, orderNum]);
+  }, [startISO, endISO, service, barber, orderNum, shopName, shopAddress]);
 
   const canShare = typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function';
 
   const onShare = async () => {
     try {
-      await (navigator as any).share({ title: `Turno · ${SHOP.name}`, text: shareText });
+      await (navigator as any).share({ title: `Turno · ${shopName}`, text: shareText });
       setShared('ok');
     } catch {
       setShared('fail');

@@ -8,19 +8,21 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { cancelAppointment } from '@/app/actions/booking';
 
 type Upcoming = {
-  id: string; starts_at: string; status: string;
+  id: string; starts_at: string; status: string; service_id?: string;
   services: { name: string; duration_mins: number; price: number };
   barbers: { name: string };
 };
-type Hist = { id: string; starts_at: string; services: { name: string }; barbers: { name: string } };
+type Hist = { id: string; starts_at: string; service_id?: string; services: { name: string }; barbers: { name: string } };
 
-export function MyAppointmentsView({ upcoming, history }: { upcoming: Upcoming[]; history: Hist[] }) {
+export function MyAppointmentsView({ slug, upcoming, history }: { slug: string; upcoming: Upcoming[]; history: Hist[] }) {
   const [tab, setTab] = useState<'next'|'past'>('next');
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const featured = upcoming[0];
   const rest = upcoming.slice(1);
+  const reservar = (serviceId?: string) =>
+    `/s/${slug}/reservar${serviceId ? `?service=${serviceId}` : ''}`;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -50,10 +52,10 @@ export function MyAppointmentsView({ upcoming, history }: { upcoming: Upcoming[]
                 title="No tenés turnos próximos"
                 description="Cuando reserves uno, va a aparecer acá."
                 ctaLabel="Reservar ahora"
-                ctaHref="/reservar"
+                ctaHref={reservar()}
               />
             ) : (
-              <FeaturedCard a={featured} pending={pending} onCancel={(id) => start(async () => {
+              <FeaturedCard a={featured} reservarHref={reservar((featured as any).service_id || '')} pending={pending} onCancel={(id) => start(async () => {
                 setError(null);
                 const r = await cancelAppointment(id);
                 if (r?.error) setError(r.error);
@@ -90,7 +92,7 @@ export function MyAppointmentsView({ upcoming, history }: { upcoming: Upcoming[]
                 title="Sin historial todavía"
                 description="Acá vas a ver tus turnos pasados cuando empieces a usar la app."
                 ctaLabel="Reservar el primero"
-                ctaHref="/reservar"
+                ctaHref={reservar()}
               />
             ) : (
               history.map((a, i) => {
@@ -102,7 +104,7 @@ export function MyAppointmentsView({ upcoming, history }: { upcoming: Upcoming[]
                       <div className="text-[13px] font-medium">{a.services?.name}</div>
                       <div className="text-[11px] text-muted">{d.toLocaleDateString('es-AR', { day:'2-digit', month:'short' }).replace('.','')} · con {a.barbers?.name}</div>
                     </div>
-                    <Link href={`/reservar?service=${(a as any).service_id || ''}`} className="text-[11px] text-muted underline py-2 px-1 active:opacity-60 transition">Repetir</Link>
+                    <Link href={reservar((a as any).service_id || '')} className="text-[11px] text-muted underline py-2 px-1 active:opacity-60 transition">Repetir</Link>
                   </div>
                 );
               })
@@ -114,7 +116,7 @@ export function MyAppointmentsView({ upcoming, history }: { upcoming: Upcoming[]
   );
 }
 
-function FeaturedCard({ a, pending, onCancel }: { a: Upcoming; pending: boolean; onCancel: (id: string) => void }) {
+function FeaturedCard({ a, reservarHref, pending, onCancel }: { a: Upcoming; reservarHref: string; pending: boolean; onCancel: (id: string) => void }) {
   const d = new Date(a.starts_at);
   const isTomorrow = (() => {
     const t = new Date(); t.setDate(t.getDate() + 1);
@@ -139,7 +141,7 @@ function FeaturedCard({ a, pending, onCancel }: { a: Upcoming; pending: boolean;
           className="flex-1 min-h-[40px] bg-transparent text-bg border border-dark-line px-3 py-2.5 rounded-m text-[12px] font-medium disabled:opacity-50 active:scale-[0.98] transition">
           {pending ? 'Cancelando…' : 'Cancelar'}
         </button>
-        <Link href={`/reservar?service=${(a as any).service_id || ''}`}
+        <Link href={reservarHref}
           className="flex-1 min-h-[40px] bg-bg text-ink px-3 py-2.5 rounded-m text-[12px] font-semibold text-center active:scale-[0.98] transition">
           Reprogramar
         </Link>
