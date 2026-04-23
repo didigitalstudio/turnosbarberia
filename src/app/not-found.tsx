@@ -19,7 +19,7 @@ export default function NotFound() {
       <div className="bg-card border border-line rounded-2xl overflow-hidden shadow-card">
         <Stripe />
         <div className="px-5 py-4 flex items-center justify-between">
-          <div className="font-mono text-[10px] tracking-[2px] text-muted">EL ESTUDIO · PALERMO</div>
+          <div className="font-mono text-[10px] tracking-[2px] text-muted">TURNOSBARBERÍA</div>
           <Link
             href="/"
             className="inline-flex items-center gap-2 bg-ink text-bg px-4 py-2.5 rounded-xl text-[13px] font-semibold active:scale-[0.98] transition"
