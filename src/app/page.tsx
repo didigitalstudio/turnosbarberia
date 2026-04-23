@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Icon } from '@/components/shared/Icon';
 import { Avatar } from '@/components/shared/Avatar';
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
   const [{ data: profile }, { data: services }, { data: barbers }, { data: nextAppt }] = await Promise.all([
     user
