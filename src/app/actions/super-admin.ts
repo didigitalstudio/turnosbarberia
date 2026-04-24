@@ -1,18 +1,12 @@
 'use server';
 import { randomBytes } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { sendShopActivatedToOwner, sendOwnerPasswordReset } from '@/lib/email';
-
-const SUPER_ADMIN_EMAIL = 'desa.baires@gmail.com';
+import { isSuperAdmin } from '@/lib/super-admin-auth';
 
 async function assertSuperAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const sb = createClient();
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user?.email) return { ok: false, error: 'No autenticado' };
-  if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
-    return { ok: false, error: 'No autorizado' };
-  }
+  if (!isSuperAdmin()) return { ok: false, error: 'No autorizado' };
   return { ok: true };
 }
 

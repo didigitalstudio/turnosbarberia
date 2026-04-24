@@ -22,13 +22,11 @@ export default async function RootPage() {
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin, shop_id, email')
+      .select('is_admin, shop_id')
       .eq('id', user.id)
-      .maybeSingle<{ is_admin: boolean; shop_id: string | null; email: string | null }>();
+      .maybeSingle<{ is_admin: boolean; shop_id: string | null }>();
 
-    if (profile?.email === 'desa.baires@gmail.com') {
-      viewer = { href: '/desa', label: 'Super-admin' };
-    } else if (profile?.is_admin) {
+    if (profile?.is_admin) {
       viewer = { href: '/shop', label: 'Ir a mi panel' };
     } else if (profile && profile.shop_id === null) {
       viewer = { href: '/onboarding', label: 'Terminar registro' };

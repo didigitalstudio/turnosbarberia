@@ -10,6 +10,7 @@ import {
   resetOwnerPassword,
   deleteShop
 } from '@/app/actions/super-admin';
+import { logoutSuperAdmin } from '@/app/actions/super-admin-auth';
 
 type Row = {
   id: string;
@@ -87,11 +88,13 @@ export function SuperAdminPanel({ shops, metrics }: { shops: Row[]; metrics: Met
               Panel <span className="italic text-accent">/desa</span>
             </h1>
           </div>
-          <a
-            href="/shop"
-            className="text-[12px] px-3 py-2 rounded-m border border-dark-line hover:border-bg/30 transition text-dark-muted hover:text-bg">
-            Salir del super-admin
-          </a>
+          <form action={logoutSuperAdmin}>
+            <button
+              type="submit"
+              className="text-[12px] px-3 py-2 rounded-m border border-dark-line hover:border-bg/30 transition text-dark-muted hover:text-bg">
+              Cerrar sesión
+            </button>
+          </form>
         </header>
 
         {msg && (

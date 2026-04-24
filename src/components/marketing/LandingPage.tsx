@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@/components/shared/Icon';
 import { Stripe } from '@/components/shared/Stripe';
-import { enterDemoDueno } from '@/app/actions/demo';
 
 // Landing page de venta para TurnosBarbería. Server component: sin hooks.
 // Se renderiza desde /page.tsx siempre (landing es la home pública del producto).
@@ -48,10 +47,10 @@ function Navbar({ viewer }: { viewer: LandingViewer }) {
             </Link>
           ) : (
             <Link
-              href="/login"
+              href="/login?demo=1"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-ink text-bg text-sm hover:bg-ink2 transition-colors"
             >
-              Probar demo
+              Ver demo
               <Icon name="arrow-right" size={14} />
             </Link>
           )}
@@ -71,7 +70,7 @@ function Navbar({ viewer }: { viewer: LandingViewer }) {
                 Entrar
               </Link>
               <Link
-                href="/login"
+                href="/login?demo=1"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-ink text-bg text-sm"
               >
                 Demo
@@ -107,15 +106,13 @@ function Hero() {
               Sin descargas, sin apps, sin vueltas.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-              <form action={enterDemoDueno}>
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-ink text-bg text-base hover:bg-ink2 transition-colors"
-                >
-                  Ver demo (dueño)
-                  <Icon name="arrow-right" size={16} />
-                </button>
-              </form>
+              <Link
+                href="/login?demo=1"
+                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-ink text-bg text-base hover:bg-ink2 transition-colors"
+              >
+                Ver demo
+                <Icon name="arrow-right" size={16} />
+              </Link>
               <Link
                 href="/registro"
                 className="inline-flex items-center justify-center sm:justify-start gap-1.5 px-4 py-2 text-sm text-ink/70 hover:text-ink transition-colors"
@@ -499,15 +496,13 @@ function FinalCta() {
           Armá tu barbería en minutos. Compartí el link. Dejá de perder turnos.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5">
-          <form action={enterDemoDueno}>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-bg text-ink text-base hover:bg-bg/90 transition-colors"
-            >
-              Ver demo (dueño)
-              <Icon name="arrow-right" size={16} />
-            </button>
-          </form>
+          <Link
+            href="/login?demo=1"
+            className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-bg text-ink text-base hover:bg-bg/90 transition-colors"
+          >
+            Ver demo
+            <Icon name="arrow-right" size={16} />
+          </Link>
           <Link
             href="/registro"
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm text-dark-muted hover:text-bg transition-colors"
@@ -537,7 +532,7 @@ function Footer() {
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-4">Producto</div>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/login" className="hover:text-ink/70">Demo</Link></li>
+              <li><Link href="/login?demo=1" className="hover:text-ink/70">Demo</Link></li>
               <li><Link href="/registro" className="hover:text-ink/70">Registro</Link></li>
               <li><Link href="/login" className="hover:text-ink/70">Login</Link></li>
             </ul>

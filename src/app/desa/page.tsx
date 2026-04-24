@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { SuperAdminPanel } from '@/components/admin/SuperAdminPanel';
+import { isSuperAdmin } from '@/lib/super-admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-const SUPER_ADMIN_EMAIL = 'desa.baires@gmail.com';
 const STARTER_PRICE = 30000;
 const PRO_PRICE = 50000;
 
@@ -19,10 +19,7 @@ type ShopRow = {
 };
 
 export default async function DesaPage() {
-  const sb = createClient();
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user?.email) redirect('/login?next=/desa');
-  if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) redirect('/');
+  if (!isSuperAdmin()) redirect('/desa/login');
 
   const admin = createAdminClient();
 
