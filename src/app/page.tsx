@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LAST_SHOP_COOKIE } from '@/lib/shop-context';
+import { LandingPage } from '@/components/marketing/LandingPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,6 @@ export default async function RootPage() {
   const lastShop = cookies().get(LAST_SHOP_COOKIE)?.value;
   if (lastShop) redirect(`/s/${lastShop}`);
 
-  // No landing page yet — fall back to the demo shop.
-  redirect('/s/demo');
+  // Nadie logueado, sin cookie — mostramos la landing de venta.
+  return <LandingPage />;
 }
