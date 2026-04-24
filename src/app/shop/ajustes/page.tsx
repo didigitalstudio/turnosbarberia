@@ -27,7 +27,7 @@ export default async function AjustesPage() {
 
   return (
     <main className="flex-1 flex flex-col mx-auto w-full max-w-[440px] md:max-w-none md:mx-0">
-      <ShopHeader subtitle="Ajustes" title="Configuración" />
+      <ShopHeader title="Ajustes" />
       <AjustesView
         shop={shop}
         services={(services as any) || []}

@@ -6,15 +6,26 @@ import { Icon } from '@/components/shared/Icon';
 import { PRODUCT } from '@/lib/shop-info';
 import { switchShop } from '@/app/actions/ajustes';
 
-const items = [
-  { id: 'agenda',    icon: 'calendar', label: 'Agenda',    href: '/shop' },
+// Orden fijo (producto): Dashboard, Agenda, Caja, Stock, Equipo, Ajustes.
+// `proOnly` filtra ítems que solo aplican al plan Pro.
+type NavItem = {
+  id: string;
+  icon: 'calendar' | 'cash' | 'users' | 'settings' | 'star' | 'bag';
+  label: string;
+  href: string;
+  proOnly?: boolean;
+};
+
+const ALL_ITEMS: NavItem[] = [
   { id: 'dashboard', icon: 'star',     label: 'Dashboard', href: '/shop/dashboard' },
-  { id: 'caja',      icon: 'cash',     label: 'Caja',      href: '/shop/caja' },
+  { id: 'agenda',    icon: 'calendar', label: 'Agenda',    href: '/shop' },
+  { id: 'caja',      icon: 'cash',     label: 'Caja',      href: '/shop/caja',   proOnly: true },
+  { id: 'stock',     icon: 'bag',      label: 'Stock',     href: '/shop/stock',  proOnly: true },
   { id: 'team',      icon: 'users',    label: 'Equipo',    href: '/shop/equipo' },
   { id: 'more',      icon: 'settings', label: 'Ajustes',   href: '/shop/ajustes' }
-] as const;
+];
 
-type ShopBrief = { id: string; name: string; slug: string };
+type ShopBrief = { id: string; name: string; slug: string; plan?: string };
 
 export function ShopSidebar({
   shop, userShops
@@ -23,6 +34,8 @@ export function ShopSidebar({
   userShops: ShopBrief[];
 }) {
   const pathname = usePathname();
+  const isPro = (shop.plan || '').toLowerCase() === 'pro';
+  const items = ALL_ITEMS.filter(i => !i.proOnly || isPro);
 
   return (
     <div className="flex flex-col h-full bg-dark text-bg">

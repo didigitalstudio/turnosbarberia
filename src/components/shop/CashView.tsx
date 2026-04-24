@@ -104,33 +104,6 @@ export function CashView({
         <ExpensesList expenses={expenses} />
       )}
 
-      {/* Stock */}
-      <SectionLabel className="mt-6">STOCK · PRODUCTOS</SectionLabel>
-      {products.length === 0 ? (
-        <EmptyState
-          dark
-          icon="bag"
-          title="Sin productos cargados"
-          description="Agregá productos desde Ajustes para empezar a venderlos desde la caja."
-        />
-      ) : (
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 xl:grid-cols-5">
-          {products.map(p => {
-            const low = p.stock < 10;
-            return (
-              <div key={p.id} className="bg-dark-card border border-dark-line rounded-l px-3.5 py-3">
-                <div className="text-[13px] font-medium text-bg truncate">{p.name}</div>
-                {p.provider && <div className="text-[10px] text-dark-muted truncate mt-0.5">{p.provider}</div>}
-                <div className="font-mono text-[13px] font-semibold mt-1 text-accent">{money(Number(p.price))}</div>
-                <div className={`text-[10px] mt-1 ${low ? 'text-accent' : 'text-dark-muted'}`}>
-                  {low ? '⚠ ' : ''}Stock: {p.stock} {p.unit && p.unit !== 'unidad' ? p.unit : ''}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {modal === 'sale' && (
         <SaleModal
           onClose={() => setModal(null)}

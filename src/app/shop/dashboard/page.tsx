@@ -155,7 +155,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   return (
     <main className="flex-1 flex flex-col mx-auto w-full max-w-[440px] md:max-w-none md:mx-0">
-      <ShopHeader subtitle="Dashboard" title="Estadísticas" />
+      <ShopHeader title="Dashboard" />
 
       <div className="flex-1 overflow-auto px-5 pt-4 pb-8 md:px-8">
         {/* Period selector */}

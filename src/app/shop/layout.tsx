@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getAdminShop, getUserShops } from '@/lib/shop-context';
 import { ShopSidebar } from '@/components/shop/ShopSidebar';
 import { ShopTabBar } from '@/components/shop/ShopTabBar';
+import { DemoSwitchBar } from '@/components/shared/DemoSwitchBar';
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -22,11 +23,12 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen bg-dark text-bg md:flex">
       <aside className="hidden md:block md:w-64 lg:w-72 md:shrink-0 md:border-r md:border-dark-line md:sticky md:top-0 md:h-screen">
         <ShopSidebar
-          shop={{ id: shop.id, name: shop.name, slug: shop.slug }}
-          userShops={userShops.map(s => ({ id: s.id, name: s.name, slug: s.slug }))}
+          shop={{ id: shop.id, name: shop.name, slug: shop.slug, plan: shop.plan }}
+          userShops={userShops.map(s => ({ id: s.id, name: s.name, slug: s.slug, plan: s.plan }))}
         />
       </aside>
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+        <DemoSwitchBar />
         {!shop.is_active && (
           <div
             role="status"
@@ -46,7 +48,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
           {children}
         </div>
         <div className="md:hidden">
-          <ShopTabBar/>
+          <ShopTabBar plan={shop.plan}/>
         </div>
       </div>
     </div>
