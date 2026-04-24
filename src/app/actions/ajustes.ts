@@ -352,3 +352,113 @@ export async function switchShop(shopId: string) {
   revalidatePath('/', 'layout');
   return { ok: true };
 }
+
+// ─── Products / Stock ────────────────────────────────────────────────────────
+
+const UpsertProductSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(2).max(80),
+  price: z.number().min(0).max(10_000_000),
+  stock: z.number().int().min(0).max(100_000),
+  unit: z.string().trim().max(20).optional().default('unidad'),
+  provider: z.string().trim().max(80).optional().nullable(),
+  cost: z.number().min(0).max(10_000_000).optional().nullable()
+});
+
+export async function upsertProduct(input: z.infer<typeof UpsertProductSchema>) {
+  const shop = await getAdminShop();
+  if (!shop) return { error: 'No autorizado' };
+  const parsed = UpsertProductSchema.safeParse(input);
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const d = parsed.data;
+  const row = {
+    name: d.name,
+    price: d.price,
+    stock: d.stock,
+    unit: d.unit || 'unidad',
+    provider: d.provider?.trim() || null,
+    cost: d.cost ?? null
+  };
+  const supabase = createClient();
+  if (d.id) {
+    const { error } = await supabase
+      .from('products').update(row).eq('id', d.id).eq('shop_id', shop.id);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from('products').insert({ ...row, shop_id: shop.id, is_active: true });
+    if (error) return { error: error.message };
+  }
+  revalidatePath('/shop/stock');
+  revalidatePath('/shop/caja');
+  return { ok: true };
+}
+
+export async function toggleProduct(id: string, active: boolean) {
+  const shop = await getAdminShop();
+  if (!shop) return { error: 'No autorizado' };
+  if (!/^[0-9a-f-]{10,}$/i.test(id)) return { error: 'id inválido' };
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('products').update({ is_active: active }).eq('id', id).eq('shop_id', shop.id);
+  if (error) return { error: error.message };
+  revalidatePath('/shop/stock');
+  revalidatePath('/shop/caja');
+  return { ok: true };
+}
+
+// ─── Walk-in (admin-side booking) ────────────────────────────────────────────
+
+const CreateWalkInSchema = z.object({
+  serviceId: z.string().uuid(),
+  barberId: z.string().uuid(),
+  customerName: z.string().trim().min(2).max(80),
+  customerPhone: z.string().trim().max(30).optional().default(''),
+  startsAt: z.string().datetime()
+});
+
+export async function createWalkIn(input: z.infer<typeof CreateWalkInSchema>) {
+  const shop = await getAdminShop();
+  if (!shop) return { error: 'No autorizado' };
+  const parsed = CreateWalkInSchema.safeParse(input);
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const d = parsed.data;
+
+  const startsAt = new Date(d.startsAt);
+  if (isNaN(startsAt.getTime())) return { error: 'Fecha inválida' };
+
+  const admin = createAdminClient();
+  const { data: service } = await admin
+    .from('services').select('id, duration_mins, shop_id, is_active')
+    .eq('id', d.serviceId).eq('shop_id', shop.id).maybeSingle<{ id: string; duration_mins: number; is_active: boolean }>();
+  if (!service || !service.is_active) return { error: 'Servicio inválido' };
+
+  const { data: barber } = await admin
+    .from('barbers').select('id')
+    .eq('id', d.barberId).eq('shop_id', shop.id).eq('is_active', true).maybeSingle();
+  if (!barber) return { error: 'Barbero inválido' };
+
+  const endsAt = new Date(startsAt.getTime() + service.duration_mins * 60_000);
+
+  const { error } = await admin.from('appointments').insert({
+    shop_id: shop.id,
+    profile_id: null,
+    barber_id: d.barberId,
+    service_id: d.serviceId,
+    customer_name: d.customerName,
+    customer_phone: (d.customerPhone || '').trim() || '—',
+    customer_email: 'walkin@local',
+    starts_at: startsAt.toISOString(),
+    ends_at: endsAt.toISOString(),
+    status: 'confirmed',
+    notes: '[WALK-IN]'
+  });
+  if (error) {
+    if (error.message.toLowerCase().includes('exclude')) {
+      return { error: 'Ese horario se superpone con otro turno del barbero.' };
+    }
+    return { error: error.message };
+  }
+  revalidatePath('/shop');
+  return { ok: true };
+}

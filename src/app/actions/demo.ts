@@ -128,8 +128,10 @@ async function ensureDemoData(shopId: string): Promise<string | null> {
     .lt('starts_at', tomorrow.toISOString());
   if ((count ?? 0) >= 8) return null;
 
-  // Wipe partial demo data for today/future to avoid overlap conflicts
-  await admin.from('appointments').delete().eq('shop_id', shopId).like('notes', `${DEMO_NOTE}%`).gte('starts_at', today.toISOString());
+  // Wipe TODOS los appointments del shop demo para hoy/futuro (agresivo a
+  // propósito: cualquier cosa que haya creado manualmente un visitor se
+  // sobreescribe para evitar colisiones con el exclusion constraint).
+  await admin.from('appointments').delete().eq('shop_id', shopId).gte('starts_at', today.toISOString());
   await admin.from('sales').delete().eq('shop_id', shopId).like('customer_name', `%${DEMO_SALE_TAG}`).gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString());
 
   // Lookups (all scoped to demo shop)
