@@ -1,15 +1,11 @@
 'use server';
 import { randomBytes } from 'node:crypto';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { DEMO, DEMO_NOTE, DEMO_SALE_TAG } from '@/lib/demo';
 
 type Role = 'cliente' | 'dueno';
-
-const DEMO_COOLDOWN_COOKIE = 'demo_cd';
-const DEMO_COOLDOWN_SECS = 2;
 
 // Wrappers sin args (Promise<void>) para usarlos como `form action` desde
 // server components de la landing. En caso de éxito `enterDemo` hace
@@ -30,22 +26,9 @@ function randomPassword(): string {
 }
 
 export async function enterDemo(role: Role) {
-  // Throttle: evita spam de enterDemo (que reinicia password y data).
-  const cookieStore = cookies();
-  const cd = cookieStore.get(DEMO_COOLDOWN_COOKIE)?.value;
-  if (cd) {
-    const ts = parseInt(cd, 10);
-    if (Number.isFinite(ts) && Date.now() - ts < DEMO_COOLDOWN_SECS * 1000) {
-      return { error: 'Esperá unos segundos entre intentos.' };
-    }
-  }
-  cookieStore.set(DEMO_COOLDOWN_COOKIE, String(Date.now()), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60
-  });
+  // Cooldown removido: interfería con el flujo del user (tocar 2 botones
+  // seguidos mientras probaba). La demo es baja-frecuencia, no vale la
+  // pena bloquear clicks legítimos.
 
   const account = DEMO[role];
   const admin = createAdminClient();
@@ -241,9 +224,14 @@ async function ensureDemoData(shopId: string): Promise<string | null> {
     }
   }
 
-  if (inserts.length > 0) {
-    const { error } = await admin.from('appointments').insert(inserts);
-    if (error) return 'Insert appointments: ' + error.message;
+  // Insert fila por fila: si alguno choca con un turno existente (exclusion
+  // constraint), lo ignoramos y seguimos con el resto. La demo igual se ve
+  // poblada — no vale la pena romper todo el flow por un overlap casual.
+  for (const row of inserts) {
+    const { error } = await admin.from('appointments').insert(row);
+    if (error && !error.message.toLowerCase().includes('exclude')) {
+      return 'Insert appointments: ' + error.message;
+    }
   }
 
   // ───── Demo sales (caja del día) ─────
