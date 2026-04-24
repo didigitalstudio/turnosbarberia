@@ -13,7 +13,6 @@ export function LandingPage() {
       <Features />
       <HowItWorks />
       <Pricing />
-      <Testimonials />
       <FinalCta />
       <Footer />
     </main>
@@ -302,6 +301,7 @@ function Pricing() {
             features={[
               'Hasta 2 barberos',
               'Agenda ilimitada',
+              'Dashboard con estadísticas',
               'Recordatorios por email',
               'Soporte por email'
             ]}
@@ -313,9 +313,10 @@ function Pricing() {
             features={[
               'Barberos ilimitados',
               'Caja integrada',
+              'Stock de productos',
               'Múltiples sucursales',
-              'Soporte prioritario',
-              'Recordatorios WhatsApp (próx.)'
+              'Dashboard con estadísticas',
+              'Soporte prioritario'
             ]}
             highlight
           />
@@ -356,9 +357,9 @@ function PricingCard({
           data-placeholder={priceKey}
           className="font-display text-4xl md:text-5xl"
         >
-          Consultar
+          {kind === 'starter' ? '$30.000' : '$50.000'}
         </span>
-        <span className="text-muted text-sm">/ mes</span>
+        <span className="text-muted text-sm">ARS / mes</span>
       </div>
       <ul className="space-y-3 mb-8">
         {features.map((f) => (
@@ -385,70 +386,6 @@ function PricingCard({
         <Icon name="arrow-right" size={16} />
       </Link>
     </div>
-  );
-}
-
-/* ---------- Testimonios ---------- */
-
-function Testimonials() {
-  const items = [
-    {
-      key: 'testimonio-1',
-      initials: 'LC',
-      name: 'Lucas',
-      role: 'Fundador, The Cut Club',
-      quote: 'En 3 semanas dejamos de perder turnos por llamadas cruzadas. Mucho más prolijo.'
-    },
-    {
-      key: 'testimonio-2',
-      initials: 'MR',
-      name: 'Martín',
-      role: 'Barber District',
-      quote: 'Mis clientes ya no me mandan DMs para reservar. Usan el link y listo.'
-    },
-    {
-      key: 'testimonio-3',
-      initials: 'DF',
-      name: 'Diego',
-      role: 'Estudio Norte',
-      quote: 'La caja al final del día me ahorra una hora de papelitos.'
-    }
-  ];
-  return (
-    <section className="py-16 md:py-24 border-t border-line">
-      <div className="max-w-6xl mx-auto px-5 md:px-8">
-        <div className="max-w-2xl mb-12 md:mb-16">
-          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted mb-4">Testimonios</div>
-          <h2 className="font-display text-4xl md:text-6xl leading-tight tracking-tight">
-            Lo que dicen<br />nuestros barberos.
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-          {items.map((t) => (
-            <div
-              key={t.key}
-              data-placeholder={t.key}
-              className="rounded-2xl bg-card border border-line p-6 md:p-8 shadow-card"
-            >
-              <div className="flex items-center gap-3 mb-5">
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center font-mono text-sm"
-                  style={{ background: '#0E0E0E', color: '#F5F3EE' }}
-                  aria-label={`Avatar de ${t.name}`}
-                >
-                  {t.initials}
-                </div>
-                <div>
-                  <div className="font-medium text-sm">{t.name}</div>
-                  <div className="text-muted text-xs">{t.role}</div>
-                </div>
-              </div>
-              <p className="font-display text-xl md:text-2xl leading-snug">&ldquo;{t.quote}&rdquo;</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -511,25 +448,30 @@ function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  data-placeholder="contact-email"
-                  href="mailto:PLACEHOLDER_EMAIL"
+                  href="mailto:desa.baires@gmail.com"
                   className="hover:text-ink/70"
                 >
-                  PLACEHOLDER_EMAIL
+                  desa.baires@gmail.com
                 </a>
               </li>
               <li>
                 <a
-                  data-placeholder="contact-wa"
-                  href="PLACEHOLDER_WA_LINK"
+                  href="https://wa.me/5493584248863"
+                  target="_blank"
+                  rel="noreferrer"
                   className="hover:text-ink/70"
                 >
-                  WhatsApp
+                  WhatsApp · Agustín
                 </a>
               </li>
               <li>
-                <a data-placeholder="contact-ig" className="hover:text-ink/70 cursor-pointer">
-                  Instagram
+                <a
+                  href="https://wa.me/5491169459990"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-ink/70"
+                >
+                  WhatsApp · Lucas
                 </a>
               </li>
             </ul>
