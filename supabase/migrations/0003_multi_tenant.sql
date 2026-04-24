@@ -23,8 +23,9 @@ create table if not exists public.shops (
 create index if not exists shops_owner_idx on public.shops(owner_id);
 
 -- Demo shop (idempotent upsert). Every pre-existing row is backfilled to this.
+-- Slug: 'barberia-demo' (no 'demo' porque /demo es ruta estática top-level).
 insert into public.shops (slug, name, address, timezone)
-values ('demo', 'Barbería Demo', null, 'America/Argentina/Buenos_Aires')
+values ('barberia-demo', 'Barbería Demo', null, 'America/Argentina/Buenos_Aires')
 on conflict (slug) do update set name = excluded.name;
 
 -- ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ create index if not exists profiles_shop_idx on public.profiles(shop_id);
 do $$
 declare demo_id uuid;
 begin
-  select id into demo_id from public.shops where slug = 'demo';
+  select id into demo_id from public.shops where slug = 'barberia-demo';
 
   -- barbers
   alter table public.barbers

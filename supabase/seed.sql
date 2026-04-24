@@ -1,13 +1,13 @@
 -- ============================================================================
 -- Seed de datos demo: barberos, servicios, horarios y productos
--- Todo scopeado al shop con slug='demo' (creado por 0003_multi_tenant.sql).
+-- Todo scopeado al shop con slug='barberia-demo' (creado por 0003_multi_tenant.sql).
 -- Idempotente.
 -- ============================================================================
 
 do $$
 declare demo_id uuid;
 begin
-  select id into demo_id from public.shops where slug = 'demo';
+  select id into demo_id from public.shops where slug = 'barberia-demo';
   if demo_id is null then
     raise exception 'Demo shop missing: run 0003_multi_tenant.sql before seeding';
   end if;

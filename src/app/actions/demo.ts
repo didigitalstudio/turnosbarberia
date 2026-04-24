@@ -50,8 +50,10 @@ export async function enterDemo(role: Role) {
   const account = DEMO[role];
   const admin = createAdminClient();
 
+  // El slug del shop demo se cambió a 'barberia-demo' porque /demo es ahora
+  // una ruta estática de acceso a la demo (no un slug de tenant).
   const { data: demoShop } = await admin
-    .from('shops').select('id, slug').eq('slug', 'demo').maybeSingle<{ id: string; slug: string }>();
+    .from('shops').select('id, slug').eq('slug', 'barberia-demo').maybeSingle<{ id: string; slug: string }>();
   if (!demoShop) return { error: 'Falta el shop demo. Aplicá el seed inicial.' };
 
   // Password random en cada login → el atacante no puede loguearse offline
