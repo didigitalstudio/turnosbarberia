@@ -9,7 +9,7 @@ import { DEMO, DEMO_NOTE, DEMO_SALE_TAG } from '@/lib/demo';
 type Role = 'cliente' | 'dueno';
 
 const DEMO_COOLDOWN_COOKIE = 'demo_cd';
-const DEMO_COOLDOWN_SECS = 8;
+const DEMO_COOLDOWN_SECS = 2;
 
 // Wrappers sin args (Promise<void>) para usarlos como `form action` desde
 // server components de la landing. En caso de éxito `enterDemo` hace

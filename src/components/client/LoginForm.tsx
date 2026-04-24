@@ -1,30 +1,28 @@
 'use client';
 import { useEffect, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Icon } from '@/components/shared/Icon';
 import { Toast } from '@/components/shared/Toast';
 import { sendMagicLink } from '@/app/actions/auth';
-import { enterDemo } from '@/app/actions/demo';
+import { enterDemoCliente, enterDemoDueno } from '@/app/actions/demo';
+import { DemoSubmitButton } from '@/components/client/DemoButton';
 
 export function LoginForm() {
+  const params = useSearchParams();
   const [pendingForm, startForm] = useTransition();
-  const [pendingDemo, startDemo] = useTransition();
-  const [demoRole, setDemoRole] = useState<'cliente' | 'dueno' | null>(null);
   const [showEmail, setShowEmail] = useState(false);
   const [msg, setMsg] = useState<{ text: string } | null>(null);
   const [sentToEmail, setSentToEmail] = useState<string | null>(null);
   const [sentName, setSentName] = useState<string>('');
 
-  const onDemo = (role: 'cliente' | 'dueno') => {
-    setDemoRole(role);
-    setMsg(null);
-    startDemo(async () => {
-      const res = await enterDemo(role);
-      if (res?.error) {
-        setDemoRole(null);
-        setMsg({ text: res.error });
-      }
-    });
-  };
+  // Si venimos de un error del enterDemo (fallback), mostramos el mensaje
+  // en un toast.
+  useEffect(() => {
+    if (params.get('demo') === 'err') {
+      const m = params.get('m');
+      setMsg({ text: m ? decodeURIComponent(m) : 'No se pudo entrar a la demo. Probá de nuevo.' });
+    }
+  }, [params]);
 
   // Screen: "Revisá tu email" después de enviar el magic link
   if (sentToEmail) {
@@ -70,22 +68,12 @@ export function LoginForm() {
             <span className="text-[11px] text-dark-muted uppercase tracking-[1.5px]">Probá la app sin registrarte</span>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => onDemo('cliente')}
-              disabled={pendingDemo}
-              className="bg-bg text-ink rounded-xl px-3 py-3 text-[13px] font-semibold flex flex-col items-center gap-1 disabled:opacity-50 active:scale-[0.98] transition">
-              <Icon name="user" size={18}/>
-              <span>{pendingDemo && demoRole === 'cliente' ? 'Entrando…' : 'Cliente'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onDemo('dueno')}
-              disabled={pendingDemo}
-              className="rounded-xl px-3 py-3 text-[13px] font-semibold flex flex-col items-center gap-1 text-white disabled:opacity-50 bg-accent active:scale-[0.98] transition">
-              <Icon name="settings" size={18} color="#fff"/>
-              <span>{pendingDemo && demoRole === 'dueno' ? 'Entrando…' : 'Dueño'}</span>
-            </button>
+            <form action={enterDemoCliente}>
+              <DemoSubmitButton label="Cliente" iconName="user" variant="light" />
+            </form>
+            <form action={enterDemoDueno}>
+              <DemoSubmitButton label="Dueño" iconName="settings" variant="dark" />
+            </form>
           </div>
           <div className="mt-3 text-[10px] text-dark-muted text-center">
             Cliente: home, reservar, mis turnos<br/>
