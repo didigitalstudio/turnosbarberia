@@ -14,9 +14,20 @@ type A = {
   barbers: { id: string; name: string; initials: string; hue: number };
 };
 
+type StatusOption = 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+
+const STATUS_LABELS: Record<StatusOption, string> = {
+  confirmed: 'Confirmado',
+  in_progress: 'En proceso',
+  completed: 'Completado',
+  cancelled: 'Cancelado',
+  no_show: 'No se presentó'
+};
+
 export function AgendaView({ appointments, barbers, dayISO, workingDays }: { appointments: A[]; barbers: any[]; dayISO: string; workingDays?: number[] }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const days = useMemo(() => buildDays(7, workingDays), [workingDays]);
   const total = appointments.length;
   const done = appointments.filter(a => a.status === 'completed').length;
@@ -132,37 +143,51 @@ export function AgendaView({ appointments, barbers, dayISO, workingDays }: { app
                       <div className="font-mono text-[13px] text-bg font-medium">{time}</div>
                       <div className="text-[9px] text-dark-muted mt-0.5">{a.services?.duration_mins}m</div>
                     </div>
-                    <button type="button"
-                      onClick={() => start(async () => {
-                        setError(null);
-                        const next = isDone ? 'confirmed' : isInProgress ? 'completed' : 'in_progress';
-                        const r = await setAppointmentStatus(a.id, next as any);
-                        if ((r as any)?.error) setError((r as any).error);
-                      })}
-                      disabled={pending}
-                      aria-label={`Turno ${a.customer_name} a las ${time}. ${isDone ? 'Marcar como confirmado' : isInProgress ? 'Marcar como completado' : 'Iniciar (en curso)'}.`}
-                      className={`flex-1 min-h-[56px] rounded-l px-3.5 py-3 flex items-center gap-2.5 text-left transition active:scale-[0.99]
-                        ${isInProgress ? 'text-white border-0 bg-accent' :
-                          isNext ? 'bg-bg text-ink border-0' :
-                          'bg-dark-card text-bg border border-dark-line hover:border-bg/30'}`}
-                      style={{
-                        borderLeft: !isInProgress && !isNext ? `3px solid oklch(0.7 0.08 ${hue})` : undefined
-                      }}>
-                      <Avatar name={a.barbers?.initials || '??'} size={32} hue={hue} dark={!isInProgress && !isNext}/>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold truncate">{a.customer_name}</div>
-                        <div className="text-[11px] opacity-80 mt-0.5 truncate">{a.services?.name} · {a.barbers?.name}</div>
-                      </div>
-                      {isDone && <Icon name="check" size={16}/>}
-                      {isInProgress && (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-xs tracking-wider" style={{ background:'rgba(255,255,255,0.25)' }}>
-                          EN CURSO
-                        </span>
+                    <div className="flex-1 relative">
+                      <button type="button"
+                        onClick={() => setMenuFor(menuFor === a.id ? null : a.id)}
+                        disabled={pending}
+                        aria-haspopup="menu"
+                        aria-expanded={menuFor === a.id}
+                        aria-label={`Turno ${a.customer_name} a las ${time}. Tocá para cambiar estado.`}
+                        className={`w-full min-h-[56px] rounded-l px-3.5 py-3 flex items-center gap-2.5 text-left transition active:scale-[0.99]
+                          ${isInProgress ? 'text-white border-0 bg-accent' :
+                            isNext ? 'bg-bg text-ink border-0' :
+                            'bg-dark-card text-bg border border-dark-line hover:border-bg/30'}`}
+                        style={{
+                          borderLeft: !isInProgress && !isNext ? `3px solid oklch(0.7 0.08 ${hue})` : undefined
+                        }}>
+                        <Avatar name={a.barbers?.initials || '??'} size={32} hue={hue} dark={!isInProgress && !isNext}/>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold truncate">{a.customer_name}</div>
+                          <div className="text-[11px] opacity-80 mt-0.5 truncate">{a.services?.name} · {a.barbers?.name}</div>
+                        </div>
+                        {isDone && <Icon name="check" size={16}/>}
+                        {isInProgress && (
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-xs tracking-wider" style={{ background:'rgba(255,255,255,0.25)' }}>
+                            EN CURSO
+                          </span>
+                        )}
+                        {!isDone && !isInProgress && (
+                          <Icon name="chevron-right" size={16} color={isNext ? '#0E0E0E' : '#F5F3EE'}/>
+                        )}
+                      </button>
+                      {menuFor === a.id && (
+                        <StatusMenu
+                          current={a.status as StatusOption}
+                          disabled={pending}
+                          onPick={(next) => {
+                            setMenuFor(null);
+                            start(async () => {
+                              setError(null);
+                              const r = await setAppointmentStatus(a.id, next);
+                              if ((r as any)?.error) setError((r as any).error);
+                            });
+                          }}
+                          onClose={() => setMenuFor(null)}
+                        />
                       )}
-                      {!isDone && !isInProgress && (
-                        <Icon name="chevron-right" size={16} color={isNext ? '#0E0E0E' : '#F5F3EE'}/>
-                      )}
-                    </button>
+                    </div>
                   </div>
                 </Fragment>
               );
@@ -220,4 +245,48 @@ function buildDays(n: number, workingDays?: number[]) {
     });
   }
   return out;
+}
+
+function StatusMenu({
+  current, disabled, onPick, onClose
+}: {
+  current: StatusOption;
+  disabled: boolean;
+  onPick: (next: StatusOption) => void;
+  onClose: () => void;
+}) {
+  const options: StatusOption[] = ['confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'];
+  return (
+    <>
+      <button
+        type="button"
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={onClose}
+        className="fixed inset-0 z-30 cursor-default"/>
+      <ul
+        role="menu"
+        className="absolute right-2 top-full mt-1 z-40 min-w-[180px] bg-dark-card border border-dark-line rounded-l overflow-hidden shadow-fab-dark">
+        {options.map(opt => {
+          const isActive = opt === current;
+          return (
+            <li key={opt} role="none">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => onPick(opt)}
+                disabled={disabled || isActive}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-left text-[13px] transition
+                  ${isActive
+                    ? 'bg-bg text-ink font-semibold'
+                    : 'text-bg hover:bg-dark'} disabled:opacity-60`}>
+                <span className="flex-1">{STATUS_LABELS[opt]}</span>
+                {isActive && <Icon name="check" size={14}/>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
 }
