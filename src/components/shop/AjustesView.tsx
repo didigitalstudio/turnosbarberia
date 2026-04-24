@@ -7,11 +7,13 @@ import {
   updateShop,
   upsertService, toggleService,
   upsertBarber, toggleBarber,
-  updateSchedules
+  updateSchedules,
+  addShop, switchShop
 } from '@/app/actions/ajustes';
+import { slugify } from '@/lib/slug';
 import type { Shop, Service, Barber, Schedule } from '@/types/db';
 
-type Tab = 'shop' | 'services' | 'team' | 'hours';
+type Tab = 'shop' | 'services' | 'team' | 'hours' | 'sedes';
 
 const DAYS = [
   { idx: 1, short: 'Lun', long: 'Lunes' },
@@ -24,13 +26,14 @@ const DAYS = [
 ];
 
 export function AjustesView({
-  shop, services, barbers, schedules, publicUrl
+  shop, services, barbers, schedules, publicUrl, userShops
 }: {
   shop: Shop;
   services: Service[];
   barbers: Barber[];
   schedules: Schedule[];
   publicUrl: string;
+  userShops: Shop[];
 }) {
   const [tab, setTab] = useState<Tab>('shop');
   const [toast, setToast] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
@@ -47,8 +50,8 @@ export function AjustesView({
       <PublicLinkBanner publicUrl={publicUrl} />
 
       {/* Tabs */}
-      <div className="mt-5 flex gap-1 bg-dark-card border border-dark-line rounded-xl p-1 w-full md:max-w-xl overflow-x-auto no-scrollbar">
-        {(['shop', 'services', 'team', 'hours'] as Tab[]).map(t => (
+      <div className="mt-5 flex gap-1 bg-dark-card border border-dark-line rounded-xl p-1 w-full md:max-w-2xl overflow-x-auto no-scrollbar">
+        {(['shop', 'services', 'team', 'hours', 'sedes'] as Tab[]).map(t => (
           <button
             key={t}
             type="button"
@@ -65,13 +68,18 @@ export function AjustesView({
         {tab === 'services' && <ServicesSection services={services} onToast={setToast} />}
         {tab === 'team' && <TeamSection barbers={barbers} onToast={setToast} />}
         {tab === 'hours' && <HoursSection barbers={barbers} schedules={schedules} onToast={setToast} />}
+        {tab === 'sedes' && <SedesSection shop={shop} userShops={userShops} onToast={setToast} />}
       </div>
     </div>
   );
 }
 
 function tabLabel(t: Tab) {
-  return t === 'shop' ? 'Barbería' : t === 'services' ? 'Servicios' : t === 'team' ? 'Equipo' : 'Horarios';
+  return t === 'shop' ? 'Barbería'
+    : t === 'services' ? 'Servicios'
+    : t === 'team' ? 'Equipo'
+    : t === 'hours' ? 'Horarios'
+    : 'Sedes';
 }
 
 // ─── Public link banner ──────────────────────────────────────────────────────
@@ -451,6 +459,207 @@ function HoursSection({ barbers, schedules, onToast }: { barbers: Barber[]; sche
           {pending ? 'Guardando…' : 'Guardar horarios'}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Sedes section ───────────────────────────────────────────────────────────
+
+const UPSELL_MAIL = 'hola@turnosbarberia.app';
+
+function SedesSection({
+  shop, userShops, onToast
+}: {
+  shop: Shop;
+  userShops: Shop[];
+  onToast: (t: { tone: 'success' | 'error'; text: string }) => void;
+}) {
+  const [pending, start] = useTransition();
+  const [draft, setDraft] = useState<{ name: string; slug: string; address: string; phone: string } | null>(null);
+  const [slugTouched, setSlugTouched] = useState(false);
+
+  const isPro = (shop.plan || 'starter') === 'pro';
+  const canAdd = isPro || userShops.length === 0;
+
+  const switchTo = (id: string) => {
+    if (id === shop.id) return;
+    start(async () => {
+      const r = await switchShop(id);
+      if (r?.error) onToast({ tone: 'error', text: r.error });
+      else window.location.reload();
+    });
+  };
+
+  const save = () => {
+    if (!draft) return;
+    start(async () => {
+      const r = await addShop({
+        name: draft.name,
+        slug: draft.slug,
+        address: draft.address,
+        phone: draft.phone
+      });
+      if (r?.error) onToast({ tone: 'error', text: r.error });
+      else {
+        onToast({ tone: 'success', text: 'Sede creada. Queda pendiente de activación.' });
+        setDraft(null);
+        // Al crearse, el trigger cambia profile.shop_id al nuevo shop → refresh.
+        window.location.reload();
+      }
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="bg-dark-card border border-dark-line rounded-xl px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="font-mono text-[10px] tracking-[2px] text-dark-muted">PLAN</div>
+            <div className="text-[14px] font-semibold text-bg mt-0.5">
+              {isPro ? 'Pro · sedes ilimitadas' : 'Starter · 1 sede'}
+            </div>
+          </div>
+          {!isPro && (
+            <a
+              href={`mailto:${UPSELL_MAIL}?subject=${encodeURIComponent('Pasar a Plan Pro')}`}
+              className="text-[12px] px-3 py-2 rounded-m bg-accent text-white font-semibold hover:opacity-90 transition">
+              Pasar a Pro
+            </a>
+          )}
+        </div>
+      </div>
+
+      {userShops.length === 0 && (
+        <div className="text-[13px] text-dark-muted bg-dark-card border border-dark-line rounded-xl px-4 py-3">
+          Todavía no tenés sedes registradas.
+        </div>
+      )}
+
+      {userShops.map(s => {
+        const isCurrent = s.id === shop.id;
+        return (
+          <div
+            key={s.id}
+            className={`bg-dark-card border rounded-xl px-4 py-3 flex items-center gap-3
+              ${isCurrent ? 'border-accent/60' : 'border-dark-line'}`}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-semibold text-bg truncate">{s.name}</span>
+                {isCurrent && (
+                  <span className="font-mono text-[9px] tracking-[2px] text-accent uppercase">Actual</span>
+                )}
+                {!s.is_active && (
+                  <span className="font-mono text-[9px] tracking-[2px] text-dark-muted uppercase">Pendiente</span>
+                )}
+              </div>
+              <div className="text-[11px] text-dark-muted mt-0.5 font-mono truncate">/s/{s.slug}</div>
+            </div>
+            {!isCurrent && (
+              <button
+                type="button"
+                onClick={() => switchTo(s.id)}
+                disabled={pending}
+                className="text-[11px] px-2.5 py-1.5 rounded-xs border border-dark-line text-bg hover:border-bg/30 transition disabled:opacity-50">
+                Cambiar a esta
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {!draft && canAdd && isPro && (
+        <button
+          type="button"
+          onClick={() => setDraft({ name: '', slug: '', address: '', phone: '' })}
+          className="mt-1 rounded-xl border border-dashed border-dark-line px-4 py-3 text-[13px] text-dark-muted flex items-center justify-center gap-2 hover:border-bg/30 hover:text-bg transition">
+          <Icon name="plus" size={16} /> Agregar sede
+        </button>
+      )}
+
+      {!isPro && userShops.length >= 1 && (
+        <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3.5 text-[13px] text-bg">
+          <div className="font-semibold mb-1">Sedes ilimitadas con Plan Pro</div>
+          <div className="text-dark-muted">
+            El plan Starter incluye 1 sede. Pasate a Pro para agregar todas las sucursales que necesites.
+          </div>
+          <div className="flex gap-2 mt-2.5">
+            <a
+              href={`mailto:${UPSELL_MAIL}?subject=${encodeURIComponent('Pasar a Plan Pro')}`}
+              className="text-[12px] px-3 py-2 rounded-m bg-accent text-white font-semibold hover:opacity-90 transition">
+              Escribirnos por mail
+            </a>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent('Hola! Quiero pasar a Plan Pro en TurnosBarbería.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[12px] px-3 py-2 rounded-m border border-dark-line text-bg hover:border-bg/30 transition">
+              WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
+
+      {draft && (
+        <div className="bg-dark-card border border-dark-line rounded-xl p-4 flex flex-col gap-2.5">
+          <div className="font-mono text-[10px] tracking-[2px] text-dark-muted">NUEVA SEDE</div>
+          <Field label="Nombre">
+            <input
+              value={draft.name}
+              onChange={e => {
+                const name = e.target.value;
+                setDraft(d => d && ({
+                  ...d,
+                  name,
+                  slug: slugTouched ? d.slug : slugify(name)
+                }));
+              }}
+              className="bg-transparent text-bg w-full outline-none text-[15px]"
+              placeholder="Barbería Palermo" />
+          </Field>
+          <Field label="Slug (URL pública)">
+            <div className="flex items-center gap-1">
+              <span className="text-dark-muted font-mono text-[13px]">/s/</span>
+              <input
+                value={draft.slug}
+                onChange={e => {
+                  setSlugTouched(true);
+                  setDraft(d => d && ({ ...d, slug: e.target.value.toLowerCase() }));
+                }}
+                className="bg-transparent text-bg w-full outline-none font-mono text-[14px]"
+                placeholder="barberia-palermo" />
+            </div>
+          </Field>
+          <Field label="Dirección (opcional)">
+            <input
+              value={draft.address}
+              onChange={e => setDraft(d => d && ({ ...d, address: e.target.value }))}
+              className="bg-transparent text-bg w-full outline-none text-[14px]"
+              placeholder="Av. Santa Fe 3200, CABA" />
+          </Field>
+          <Field label="Teléfono (opcional)">
+            <input
+              value={draft.phone}
+              onChange={e => setDraft(d => d && ({ ...d, phone: e.target.value }))}
+              className="bg-transparent text-bg w-full outline-none font-mono text-[13px]"
+              placeholder="+54 9 11 5823 4412" />
+          </Field>
+          <div className="flex gap-2 mt-1">
+            <button
+              type="button"
+              onClick={save}
+              disabled={pending || !draft.name.trim() || !draft.slug.trim()}
+              className="bg-accent text-white px-4 py-2.5 rounded-m text-[13px] font-semibold disabled:opacity-50 active:scale-[0.97] transition">
+              {pending ? 'Creando…' : 'Crear sede'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setDraft(null); setSlugTouched(false); }}
+              className="px-4 py-2.5 rounded-m border border-dark-line text-bg text-[13px] hover:border-bg/30 transition">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,6 +43,28 @@ export async function getAdminShop(): Promise<Shop | null> {
 }
 
 /**
+ * Todas las sedes en las que este user es miembro (owner/admin).
+ * Usado por el selector de sedes del panel admin en Plan Pro.
+ */
+export async function getUserShops(userId: string): Promise<Shop[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('shop_members')
+    .select('shops(*)')
+    .eq('profile_id', userId);
+  // Supabase puede devolver `shops` como objeto (FK simple) o array (según
+  // cómo infiera el schema). Normalizamos ambos casos.
+  const rows = (data || []) as unknown as Array<{ shops: Shop | Shop[] | null }>;
+  const shops: Shop[] = [];
+  for (const r of rows) {
+    if (!r.shops) continue;
+    if (Array.isArray(r.shops)) shops.push(...r.shops);
+    else shops.push(r.shops);
+  }
+  return shops;
+}
+
+/**
  * Último shop visitado por el cliente, guardado en una cookie `last_shop`.
  * Se usa en `/` para redirigir al cliente al shop que ya conoce.
  */

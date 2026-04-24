@@ -90,6 +90,31 @@ function escapeAttr(s: string): string { return escapeHtml(s); }
 
 // ─── Templates ───────────────────────────────────────────────────────────────
 
+export async function sendAppointmentReminderToCustomer(args: {
+  to: string;
+  customerName: string;
+  shopName: string;
+  shopSlug: string;
+  serviceName: string;
+  barberName: string;
+  startsAt: string; // ISO
+}): Promise<SendResult> {
+  const when = formatWhen(args.startsAt);
+  const link = `${siteUrl()}/s/${args.shopSlug}/mis-turnos`;
+  const body = `
+    <div style="font-family:'Instrument Serif',Times,serif;font-size:26px;line-height:1.15;margin:0 0 6px;">Recordatorio de turno</div>
+    <div style="color:#7A766E;font-size:12px;margin-bottom:16px;">en ${escapeHtml(args.shopName)}</div>
+    <p>Hola ${escapeHtml(args.customerName)}, te esperamos mañana:</p>
+    <ul style="padding-left:18px;margin:8px 0 18px;">
+      <li><b>${escapeHtml(args.serviceName)}</b> con <b>${escapeHtml(args.barberName)}</b></li>
+      <li>${escapeHtml(when)}</li>
+    </ul>
+    <p style="margin:18px 0 6px;">${button('Ver mi turno', link)}</p>
+    <p style="color:#7A766E;font-size:12px;margin-top:18px;">Si no vas a poder ir, cancelalo desde la app así liberamos el horario para alguien más.</p>
+  `;
+  return sendEmail({ to: args.to, subject: `Mañana: ${args.serviceName} en ${args.shopName}`, html: shell('Recordatorio', body) });
+}
+
 export async function sendBookingConfirmationToCustomer(args: {
   to: string;
   customerName: string;

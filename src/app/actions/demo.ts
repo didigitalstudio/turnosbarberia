@@ -94,10 +94,13 @@ async function ensureDemoData(shopId: string): Promise<string | null> {
   const today = startOfDay(new Date());
   const tomorrow = new Date(today.getTime() + 86400000);
 
-  // Cleanup demo data older than 7 days
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-  await admin.from('appointments').delete().eq('shop_id', shopId).like('notes', `${DEMO_NOTE}%`).lt('starts_at', sevenDaysAgo);
-  await admin.from('sales').delete().eq('shop_id', shopId).like('customer_name', `%${DEMO_SALE_TAG}`).lt('created_at', sevenDaysAgo);
+  // Cleanup: appointments demo más viejos que 35d, sales/expenses >40d.
+  // (Mantenemos historial para que el dashboard muestre "últimos 30 días".)
+  const forty = new Date(Date.now() - 40 * 86400000).toISOString();
+  const thirtyFive = new Date(Date.now() - 35 * 86400000).toISOString();
+  await admin.from('appointments').delete().eq('shop_id', shopId).like('notes', `${DEMO_NOTE}%`).lt('starts_at', thirtyFive);
+  await admin.from('sales').delete().eq('shop_id', shopId).like('customer_name', `%${DEMO_SALE_TAG}`).lt('created_at', forty);
+  await admin.from('expenses').delete().eq('shop_id', shopId).like('description', `%${DEMO_SALE_TAG}`).lt('paid_at', forty);
 
   // Already seeded for today?
   const { count } = await admin
@@ -246,6 +249,100 @@ async function ensureDemoData(shopId: string): Promise<string | null> {
   if (salesInserts.length > 0) {
     const { error } = await admin.from('sales').insert(salesInserts);
     if (error) return 'Insert sales: ' + error.message;
+  }
+
+  // ───── Historial 30 días: sales + expenses (para dashboard) ─────
+  // Si ya existe historial reciente (>10 rows en últimos 30d), no regeneramos.
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { count: histCount } = await admin
+    .from('sales')
+    .select('id', { count: 'exact', head: true })
+    .eq('shop_id', shopId)
+    .like('customer_name', `%${DEMO_SALE_TAG}`)
+    .gte('created_at', thirtyDaysAgo)
+    .lt('created_at', startOfDay(new Date()).toISOString());
+  if ((histCount ?? 0) < 20) {
+    const histSales: any[] = [];
+    const servicePrices = [8500, 12500, 5500, 7000];
+    const productMap = [
+      { name: 'Pomada Mate',  price: 6200 },
+      { name: 'Cera Fuerte',  price: 5800 },
+      { name: 'Shampoo Barba', price: 7400 },
+      { name: 'Aceite Barba', price: 5200 },
+      { name: 'Peine madera', price: 3200 }
+    ];
+    const methods: Array<'efectivo'|'transferencia'|'debito'|'credito'> = ['efectivo','transferencia','debito','credito'];
+    const clientNames = ['Carlos P.', 'Diego L.', 'Facu S.', 'Martín C.', 'Juan M.', 'Bruno V.', 'Nico D.', 'Tomás H.', 'Agus R.', 'Fede N.'];
+    // ~3-5 ventas/día x 30 días = ~120
+    for (let d = 30; d >= 1; d--) {
+      const day = new Date(today.getTime() - d * 86400000);
+      if (day.getDay() === 0) continue; // domingo cerrado
+      const count = 2 + Math.floor(Math.random() * 4); // 2-5 ventas
+      for (let i = 0; i < count; i++) {
+        const hour = 10 + Math.floor(Math.random() * 10);
+        const min = Math.floor(Math.random() * 60);
+        const at = new Date(day); at.setHours(hour, min, 0, 0);
+        const isProduct = Math.random() < 0.25;
+        if (isProduct) {
+          const p = productMap[Math.floor(Math.random() * productMap.length)];
+          histSales.push({
+            shop_id: shopId,
+            type: 'product',
+            product_id: findProduct(p.name)?.id || null,
+            amount: p.price,
+            payment_method: methods[Math.floor(Math.random() * methods.length)],
+            customer_name: clientNames[Math.floor(Math.random() * clientNames.length)] + DEMO_SALE_TAG,
+            created_at: at.toISOString()
+          });
+        } else {
+          histSales.push({
+            shop_id: shopId,
+            type: 'service',
+            amount: servicePrices[Math.floor(Math.random() * servicePrices.length)],
+            payment_method: methods[Math.floor(Math.random() * methods.length)],
+            customer_name: clientNames[Math.floor(Math.random() * clientNames.length)] + DEMO_SALE_TAG,
+            created_at: at.toISOString()
+          });
+        }
+      }
+    }
+    if (histSales.length > 0) {
+      const { error } = await admin.from('sales').insert(histSales);
+      if (error) return 'Insert hist sales: ' + error.message;
+    }
+  }
+
+  // Expenses: asegurar algunos en los últimos 30 días + hoy.
+  const { count: expCount } = await admin
+    .from('expenses')
+    .select('id', { count: 'exact', head: true })
+    .eq('shop_id', shopId)
+    .like('description', `%${DEMO_SALE_TAG}`)
+    .gte('paid_at', thirtyDaysAgo);
+  if ((expCount ?? 0) < 6) {
+    const expensePlan = [
+      { category: 'alquiler',  description: 'Alquiler local'    + DEMO_SALE_TAG, amount: 280000, daysAgo: 2,  method: 'transferencia' as const },
+      { category: 'servicios', description: 'Luz + agua'         + DEMO_SALE_TAG, amount: 48000,  daysAgo: 5,  method: 'debito' as const },
+      { category: 'servicios', description: 'Internet'           + DEMO_SALE_TAG, amount: 18000,  daysAgo: 8,  method: 'debito' as const },
+      { category: 'insumos',   description: 'Reposición gel/spray' + DEMO_SALE_TAG, amount: 62000,  daysAgo: 12, method: 'efectivo' as const },
+      { category: 'insumos',   description: 'Toallas descartables' + DEMO_SALE_TAG, amount: 22500,  daysAgo: 18, method: 'efectivo' as const },
+      { category: 'sueldos',   description: 'Comisión barberos'    + DEMO_SALE_TAG, amount: 450000, daysAgo: 25, method: 'transferencia' as const },
+      { category: 'otros',     description: 'Café + descartables'  + DEMO_SALE_TAG, amount: 15000,  daysAgo: 1,  method: 'efectivo' as const }
+    ];
+    const expRows = expensePlan.map(e => {
+      const at = new Date(today.getTime() - e.daysAgo * 86400000);
+      at.setHours(10 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 60), 0, 0);
+      return {
+        shop_id: shopId,
+        category: e.category,
+        description: e.description,
+        amount: e.amount,
+        payment_method: e.method,
+        paid_at: at.toISOString()
+      };
+    });
+    const { error: expErr } = await admin.from('expenses').insert(expRows);
+    if (expErr) return 'Insert expenses: ' + expErr.message;
   }
 
   return null;
