@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Icon } from '@/components/shared/Icon';
 import { Stripe } from '@/components/shared/Stripe';
+import { enterDemoDueno } from '@/app/actions/demo';
 
 // Landing page de venta para TurnosBarbería. Server component: sin hooks.
 // Se renderiza desde /page.tsx siempre (landing es la home pública del producto).
@@ -106,18 +107,20 @@ function Hero() {
               Sin descargas, sin apps, sin vueltas.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+              <form action={enterDemoDueno}>
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-ink text-bg text-base hover:bg-ink2 transition-colors"
+                >
+                  Ver demo (dueño)
+                  <Icon name="arrow-right" size={16} />
+                </button>
+              </form>
               <Link
                 href="/registro"
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-ink text-bg text-base hover:bg-ink2 transition-colors"
-              >
-                Registrar mi barbería
-                <Icon name="arrow-right" size={16} />
-              </Link>
-              <Link
-                href="/login"
                 className="inline-flex items-center justify-center sm:justify-start gap-1.5 px-4 py-2 text-sm text-ink/70 hover:text-ink transition-colors"
               >
-                o probá la demo
+                o registrá tu barbería
                 <Icon name="arrow-right" size={14} />
               </Link>
             </div>
@@ -496,18 +499,20 @@ function FinalCta() {
           Armá tu barbería en minutos. Compartí el link. Dejá de perder turnos.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5">
+          <form action={enterDemoDueno}>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-bg text-ink text-base hover:bg-bg/90 transition-colors"
+            >
+              Ver demo (dueño)
+              <Icon name="arrow-right" size={16} />
+            </button>
+          </form>
           <Link
             href="/registro"
-            className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-bg text-ink text-base hover:bg-bg/90 transition-colors"
-          >
-            Registrar mi barbería
-            <Icon name="arrow-right" size={16} />
-          </Link>
-          <Link
-            href="/login"
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm text-dark-muted hover:text-bg transition-colors"
           >
-            o probá la demo
+            o registrá tu barbería
             <Icon name="arrow-right" size={14} />
           </Link>
         </div>

@@ -5,8 +5,8 @@ import { SuperAdminPanel } from '@/components/admin/SuperAdminPanel';
 export const dynamic = 'force-dynamic';
 
 const SUPER_ADMIN_EMAIL = 'desa.baires@gmail.com';
-const STARTER_PRICE = 15000;
-const PRO_PRICE = 30000;
+const STARTER_PRICE = 30000;
+const PRO_PRICE = 50000;
 
 type ShopRow = {
   id: string;

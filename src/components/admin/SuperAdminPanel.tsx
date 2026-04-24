@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/shared/Icon';
 import { Toast } from '@/components/shared/Toast';
 import { money } from '@/lib/format';
@@ -33,6 +34,7 @@ type Metrics = {
 };
 
 export function SuperAdminPanel({ shops, metrics }: { shops: Row[]; metrics: Metrics }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [deletingShop, setDeletingShop] = useState<Row | null>(null);
@@ -49,7 +51,10 @@ export function SuperAdminPanel({ shops, metrics }: { shops: Row[]; metrics: Met
       try {
         const r = await promise;
         if (r?.error) setMsg({ tone: 'error', text: r.error });
-        else setMsg({ tone: 'success', text: successText });
+        else {
+          setMsg({ tone: 'success', text: successText });
+          router.refresh();
+        }
       } catch (e: any) {
         setMsg({ tone: 'error', text: e?.message || 'Error desconocido' });
       }
@@ -67,6 +72,7 @@ export function SuperAdminPanel({ shops, metrics }: { shops: Row[]; metrics: Met
         setMsg({ tone: 'success', text: `Shop "${deletingShop.slug}" eliminado.` });
         setDeletingShop(null);
         setDeleteInput('');
+        router.refresh();
       }
     });
   };

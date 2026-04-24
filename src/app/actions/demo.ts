@@ -11,6 +11,20 @@ type Role = 'cliente' | 'dueno';
 const DEMO_COOLDOWN_COOKIE = 'demo_cd';
 const DEMO_COOLDOWN_SECS = 8;
 
+// Wrappers sin args (Promise<void>) para usarlos como `form action` desde
+// server components de la landing. En caso de éxito `enterDemo` hace
+// `redirect()` que tira NEXT_REDIRECT; en caso de error controlado
+// (cooldown, shop demo faltante) redirigimos a /login con un query param
+// para no devolver payload.
+export async function enterDemoCliente(): Promise<void> {
+  const r = await enterDemo('cliente');
+  if (r?.error) redirect(`/login?demo=err&m=${encodeURIComponent(r.error)}`);
+}
+export async function enterDemoDueno(): Promise<void> {
+  const r = await enterDemo('dueno');
+  if (r?.error) redirect(`/login?demo=err&m=${encodeURIComponent(r.error)}`);
+}
+
 function randomPassword(): string {
   return randomBytes(18).toString('base64url');
 }
