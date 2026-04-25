@@ -528,6 +528,17 @@ function Footer() {
             <p className="text-muted text-sm mt-3 max-w-xs">
               SaaS para barberías. Hecho en Buenos Aires.
             </p>
+            <p className="text-muted text-sm mt-4">
+              Desarrollado por{' '}
+              <a
+                href="https://didigitalstudio.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink hover:text-ink/70 underline underline-offset-2"
+              >
+                DI Digital Studio
+              </a>
+            </p>
           </div>
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-4">Producto</div>
@@ -572,7 +583,17 @@ function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-6 border-t border-line flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="text-xs text-muted">© 2026 Desarrollos BA</div>
+          <div className="text-xs text-muted">
+            © 2026 Desarrollos BA · Desarrollado por{' '}
+            <a
+              href="https://didigitalstudio.com"
+              target="_blank"
+              rel="noreferrer"
+              className="text-ink hover:text-ink/70"
+            >
+              DI Digital Studio
+            </a>
+          </div>
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
             v1.0 — Buenos Aires, AR
           </div>

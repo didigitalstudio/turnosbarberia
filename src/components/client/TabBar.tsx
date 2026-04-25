@@ -22,32 +22,38 @@ export function TabBar({ slug }: { slug: string }) {
   const pathname = usePathname();
   const base = `/${slug}`;
   return (
-    <nav aria-label="Navegación principal" className="border-t border-line bg-card flex justify-around px-2 pt-2 pb-6">
-      {tabs.map(t => {
-        const href = `${base}${t.path}`;
-        const isActive =
-          t.path === '' ? pathname === base :
-          pathname.startsWith(href);
-        const isCta = t.id === 'book';
-        if (isCta) {
+    <>
+      <div aria-hidden="true" className="h-20 flex-shrink-0" />
+      <nav
+        aria-label="Navegación principal"
+        className="fixed bottom-0 inset-x-0 z-40 mx-auto max-w-[440px] border-t border-line bg-card flex justify-around px-2 pt-2 pb-[max(env(safe-area-inset-bottom),20px)]"
+      >
+        {tabs.map(t => {
+          const href = `${base}${t.path}`;
+          const isActive =
+            t.path === '' ? pathname === base :
+            pathname.startsWith(href);
+          const isCta = t.id === 'book';
+          if (isCta) {
+            return (
+              <Link key={t.id} href={href}
+                className="-mt-2 grid h-12 w-12 place-items-center rounded-full bg-ink text-white shadow-fab active:scale-95 transition flex-shrink-0"
+                aria-label={t.label}>
+                <Icon name={t.icon} size={22} color="#fff"/>
+              </Link>
+            );
+          }
           return (
             <Link key={t.id} href={href}
-              className="-mt-2 grid h-12 w-12 place-items-center rounded-full bg-ink text-white shadow-fab active:scale-95 transition flex-shrink-0"
-              aria-label={t.label}>
-              <Icon name={t.icon} size={22} color="#fff"/>
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={t.label}
+              className={`flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[48px] px-1 py-1 transition ${isActive ? 'text-ink' : 'text-muted'}`}>
+              <Icon name={t.icon} size={20}/>
+              <span className={`text-[10px] ${isActive ? 'font-semibold' : ''}`}>{t.label}</span>
             </Link>
           );
-        }
-        return (
-          <Link key={t.id} href={href}
-            aria-current={isActive ? 'page' : undefined}
-            aria-label={t.label}
-            className={`flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[48px] px-1 py-1 transition ${isActive ? 'text-ink' : 'text-muted'}`}>
-            <Icon name={t.icon} size={20}/>
-            <span className={`text-[10px] ${isActive ? 'font-semibold' : ''}`}>{t.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+        })}
+      </nav>
+    </>
   );
 }
