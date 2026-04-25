@@ -28,25 +28,28 @@ export function ShopTabBar({ plan }: { plan?: string }) {
   const tabs = ALL_TABS.filter(t => !t.proOnly || isPro);
 
   return (
-    <nav
-      aria-label="Navegación principal"
-      className="border-t border-dark-line bg-dark-card flex justify-around px-2 pt-2 pb-6">
-      {tabs.map(t => {
-        const isActive =
-          t.href === '/shop' ? pathname === '/shop' :
-          pathname.startsWith(t.href);
-        return (
-          <Link
-            key={t.id}
-            href={t.href}
-            aria-current={isActive ? 'page' : undefined}
-            aria-label={t.label}
-            className={`flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] px-0.5 py-1 transition ${isActive ? 'text-bg' : 'text-dark-muted'}`}>
-            <Icon name={t.icon} size={20}/>
-            <span className={`text-[9.5px] ${isActive ? 'font-semibold' : ''}`}>{t.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      <div aria-hidden="true" className="h-20 flex-shrink-0" />
+      <nav
+        aria-label="Navegación principal"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-dark-line bg-dark-card flex justify-around px-2 pt-2 pb-[max(env(safe-area-inset-bottom),20px)]">
+        {tabs.map(t => {
+          const isActive =
+            t.href === '/shop' ? pathname === '/shop' :
+            pathname.startsWith(t.href);
+          return (
+            <Link
+              key={t.id}
+              href={t.href}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={t.label}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] px-0.5 py-1 transition ${isActive ? 'text-bg' : 'text-dark-muted'}`}>
+              <Icon name={t.icon} size={20}/>
+              <span className={`text-[9.5px] ${isActive ? 'font-semibold' : ''}`}>{t.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }
