@@ -48,7 +48,7 @@ export function isSuperAdmin(): boolean {
 
 // Compara email + password contra env vars de manera timing-safe.
 export function verifyCredentials(email: string, password: string): boolean {
-  const expectedEmail = (process.env.SUPER_ADMIN_EMAIL || 'desa.baires@gmail.com').toLowerCase();
+  const expectedEmail = (process.env.SUPER_ADMIN_EMAIL || 'info@didigitalstudio.com').toLowerCase();
   const expectedPass = process.env.SUPER_ADMIN_PASSWORD || '';
   if (!expectedPass) return false;
   if (email.trim().toLowerCase() !== expectedEmail) return false;

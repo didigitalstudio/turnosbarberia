@@ -465,7 +465,8 @@ function HoursSection({ barbers, schedules, onToast }: { barbers: Barber[]; sche
 
 // ─── Sedes section ───────────────────────────────────────────────────────────
 
-const UPSELL_MAIL = 'hola@turnosbarberia.app';
+const UPSELL_MAIL = 'info@didigitalstudio.com';
+const UPSELL_WHATSAPP = '5491169459990';
 
 function SedesSection({
   shop, userShops, onToast
@@ -589,7 +590,7 @@ function SedesSection({
               Escribirnos por mail
             </a>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent('Hola! Quiero pasar a Plan Pro en TurnosBarbería.')}`}
+              href={`https://wa.me/${UPSELL_WHATSAPP}?text=${encodeURIComponent('Hola! Quiero pasar a Plan Pro en TurnosBarbería.')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[12px] px-3 py-2 rounded-m border border-dark-line text-bg hover:border-bg/30 transition">

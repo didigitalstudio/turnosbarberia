@@ -42,8 +42,8 @@ export function SuperAdminLoginForm() {
               required
               autoComplete="email"
               inputMode="email"
-              defaultValue="desa.baires@gmail.com"
-              placeholder="desa.baires@gmail.com"
+              defaultValue="info@didigitalstudio.com"
+              placeholder="info@didigitalstudio.com"
               className="bg-transparent text-bg text-[16px] w-full outline-none font-mono placeholder:text-dark-muted/60"
             />
           </label>

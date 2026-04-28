@@ -6,7 +6,7 @@
  */
 
 const DEFAULT_FROM = 'TurnosBarbería <onboarding@resend.dev>';
-const SUPER_ADMIN_EMAIL = 'desa.baires@gmail.com';
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'info@didigitalstudio.com';
 
 export type SendResult =
   | { ok: true; id?: string; skipped?: boolean }

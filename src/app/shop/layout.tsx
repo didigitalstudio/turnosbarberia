@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server';
 import { getAdminShop, getUserShops } from '@/lib/shop-context';
 import { ShopSidebar } from '@/components/shop/ShopSidebar';
 import { ShopTabBar } from '@/components/shop/ShopTabBar';
-import { DemoSwitchBar } from '@/components/shared/DemoSwitchBar';
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -28,7 +27,6 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         />
       </aside>
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
-        <DemoSwitchBar />
         {!shop.is_active && (
           <div
             role="status"

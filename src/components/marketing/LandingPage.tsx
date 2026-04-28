@@ -46,13 +46,18 @@ function Navbar({ viewer }: { viewer: LandingViewer }) {
               <Icon name="arrow-right" size={14} />
             </Link>
           ) : (
-            <Link
-              href="/demo"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-ink text-bg text-sm hover:bg-ink2 transition-colors"
-            >
-              Ver demo
-              <Icon name="arrow-right" size={14} />
-            </Link>
+            <>
+              <Link href="/login" className="text-sm hover:text-ink/70 transition-colors">
+                Entrar
+              </Link>
+              <Link
+                href="/registro"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-ink text-bg text-sm hover:bg-ink2 transition-colors"
+              >
+                Registrate
+                <Icon name="arrow-right" size={14} />
+              </Link>
+            </>
           )}
         </nav>
         <div className="md:hidden flex items-center gap-2">
@@ -70,10 +75,10 @@ function Navbar({ viewer }: { viewer: LandingViewer }) {
                 Entrar
               </Link>
               <Link
-                href="/demo"
+                href="/registro"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-ink text-bg text-sm"
               >
-                Demo
+                Registrate
                 <Icon name="arrow-right" size={12} />
               </Link>
             </>
@@ -107,17 +112,17 @@ function Hero() {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
               <Link
-                href="/demo"
+                href="/registro"
                 className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-ink text-bg text-base hover:bg-ink2 transition-colors"
               >
-                Ver demo
+                Registrá tu barbería
                 <Icon name="arrow-right" size={16} />
               </Link>
               <Link
-                href="/registro"
+                href="/login"
                 className="inline-flex items-center justify-center sm:justify-start gap-1.5 px-4 py-2 text-sm text-ink/70 hover:text-ink transition-colors"
               >
-                o registrá tu barbería
+                o entrá si ya tenés cuenta
                 <Icon name="arrow-right" size={14} />
               </Link>
             </div>
@@ -426,7 +431,7 @@ function Faq() {
   const items: Array<{ q: string; a: string }> = [
     {
       q: '¿Hay período de prueba?',
-      a: 'Podés probar la demo en vivo sin registrarte. El registro necesita aprobación manual mientras estamos en beta; mientras tanto no te cobramos nada hasta tener todo andando.'
+      a: 'El registro necesita aprobación manual mientras estamos en beta; mientras tanto no te cobramos nada hasta tener todo andando. Si querés ver el producto antes de registrarte, escribinos por WhatsApp y te coordinamos un acceso de prueba.'
     },
     {
       q: '¿Qué pasa si supero los 3 barberos en el plan Starter?',
@@ -497,17 +502,17 @@ function FinalCta() {
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5">
           <Link
-            href="/demo"
+            href="/registro"
             className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-bg text-ink text-base hover:bg-bg/90 transition-colors"
           >
-            Ver demo
+            Registrá tu barbería
             <Icon name="arrow-right" size={16} />
           </Link>
           <Link
-            href="/registro"
+            href="/login"
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm text-dark-muted hover:text-bg transition-colors"
           >
-            o registrá tu barbería
+            o entrá si ya tenés cuenta
             <Icon name="arrow-right" size={14} />
           </Link>
         </div>
@@ -543,7 +548,6 @@ function Footer() {
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-4">Producto</div>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/demo" className="hover:text-ink/70">Demo</Link></li>
               <li><Link href="/registro" className="hover:text-ink/70">Registro</Link></li>
               <li><Link href="/login" className="hover:text-ink/70">Login</Link></li>
             </ul>
@@ -553,20 +557,10 @@ function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="mailto:desa.baires@gmail.com"
+                  href="mailto:info@didigitalstudio.com"
                   className="hover:text-ink/70"
                 >
-                  desa.baires@gmail.com
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/5493584248863"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-ink/70"
-                >
-                  WhatsApp · Agustín
+                  info@didigitalstudio.com
                 </a>
               </li>
               <li>
