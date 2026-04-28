@@ -1,34 +1,74 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { LAST_SHOP_COOKIE } from '@/lib/shop-context';
 
 // Whitelist de paths permitidos como destino post-login.
 // Cualquier otra cosa (protocolo, //dominio, /\dominio, /%2Fdominio, etc.)
-// se rechaza y se cae al default "/".
+// se rechaza.
 const SAFE_NEXT_RE = /^\/(shop(?:\/.*)?|onboarding|registro|login|demo|desarrollo(?:\/.*)?|perfil|[a-z0-9][a-z0-9-]{1,40}[a-z0-9](?:\/.*)?)?$/;
 
-function sanitizeNext(raw: string | null): string {
-  if (!raw) return '/';
-  if (!raw.startsWith('/')) return '/';
-  if (raw.startsWith('//')) return '/';
-  if (raw.includes('\\')) return '/';
+function sanitizeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/')) return null;
+  if (raw.startsWith('//')) return null;
+  if (raw.includes('\\')) return null;
   try {
     const decoded = decodeURIComponent(raw);
-    if (decoded.startsWith('//') || decoded.includes('\\')) return '/';
+    if (decoded.startsWith('//') || decoded.includes('\\')) return null;
   } catch {
-    return '/';
+    return null;
   }
-  return SAFE_NEXT_RE.test(raw) ? raw : '/';
+  return SAFE_NEXT_RE.test(raw) ? raw : null;
+}
+
+const RESERVED_SLUGS = new Set([
+  'api', 'auth', 'shop', 'login', 'registro',
+  'demo', 'desarrollo', 'onboarding', 'admin', 's', 'desa'
+]);
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,40}[a-z0-9]$/;
+
+function safeShopSlug(raw: string | undefined): string | null {
+  if (!raw) return null;
+  if (RESERVED_SLUGS.has(raw)) return null;
+  if (!SLUG_RE.test(raw)) return null;
+  return raw;
+}
+
+// Cuando el caller no pasó `?next=...`, decidimos el destino post-login en
+// base al rol del user. El default `/` (landing) es UX malo: el dueño
+// abre el magic link y queda en la página de venta en vez de su panel.
+async function defaultDestination(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return '/';
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin, shop_id')
+    .eq('id', user.id)
+    .maybeSingle<{ is_admin: boolean; shop_id: string | null }>();
+
+  if (profile?.is_admin) return '/shop';
+  if (profile && profile.shop_id === null) return '/onboarding';
+
+  const lastShop = safeShopSlug(cookies().get(LAST_SHOP_COOKIE)?.value);
+  if (lastShop) return `/${lastShop}`;
+
+  return '/';
 }
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const safeNext = sanitizeNext(searchParams.get('next'));
+  const explicitNext = sanitizeNext(searchParams.get('next'));
 
   if (code) {
     const supabase = createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`);
+    if (!error) {
+      const dest = explicitNext ?? await defaultDestination(supabase);
+      return NextResponse.redirect(`${origin}${dest}`);
+    }
   }
   return NextResponse.redirect(`${origin}/login?error=auth_failed`);
 }
