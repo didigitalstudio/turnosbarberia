@@ -73,19 +73,9 @@ export function ShopSidebar({
         })}
       </nav>
 
-      <div className="px-4 py-4 border-t border-dark-line space-y-3">
-        <div>
-          <div className="font-mono text-[9px] tracking-[2px] text-dark-muted">TU BARBERÍA</div>
-          <div className="text-[13px] font-semibold text-bg mt-1 truncate">{shop.name}</div>
-        </div>
-        <a
-          href={`/${shop.slug}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-m bg-dark-card border border-dark-line text-bg text-[12px] font-medium hover:border-bg/30 transition">
-          <span>Ver como cliente</span>
-          <Icon name="arrow-right" size={14}/>
-        </a>
+      <div className="px-4 py-4 border-t border-dark-line">
+        <div className="font-mono text-[9px] tracking-[2px] text-dark-muted">TU BARBERÍA</div>
+        <div className="text-[13px] font-semibold text-bg mt-1 truncate">{shop.name}</div>
       </div>
     </div>
   );
