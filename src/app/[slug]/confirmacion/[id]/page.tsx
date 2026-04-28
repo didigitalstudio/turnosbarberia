@@ -57,8 +57,8 @@ export default async function ConfirmationPage({ params }: { params: { slug: str
   const start = new Date(a.starts_at);
   const end = new Date(a.ends_at || new Date(start.getTime() + (a.services?.duration_mins || 30) * 60_000).toISOString());
   const orderNum = String(params.id).slice(-5).toUpperCase();
-  const dateLabel = start.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '').toUpperCase();
-  const timeLabel = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const dateLabel = start.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }).replace(/\./g, '').toUpperCase();
+  const timeLabel = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' });
 
   return (
     <main className="min-h-screen flex flex-col px-5 pt-5 pb-7">

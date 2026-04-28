@@ -276,7 +276,7 @@ function BarChart({ buckets, max }: { buckets: Array<{ date: Date; amount: numbe
           return (
             <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full">
               <div
-                title={`${b.date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}: ${b.amount.toLocaleString('es-AR')}`}
+                title={`${b.date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' , timeZone: 'America/Argentina/Buenos_Aires' })}: ${b.amount.toLocaleString('es-AR')}`}
                 style={{ height: barH, background: b.amount > 0 ? '#B6754C' : '#2A2824' }}
                 className="w-full rounded-xs"
               />

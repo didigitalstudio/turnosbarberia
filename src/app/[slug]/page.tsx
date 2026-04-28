@@ -58,10 +58,10 @@ export default async function ShopHomePage({ params }: { params: { slug: string 
             <div className="font-mono text-[10px] tracking-[2px] text-dark-muted mt-2">TU PRÓXIMO TURNO</div>
             <div className="flex items-baseline gap-2.5 mt-2.5">
               <div className="font-display text-[44px] leading-none">
-                {new Date(next.starts_at).toLocaleDateString('es-AR', { weekday:'short', day:'numeric' }).replace('.', '')}
+                {new Date(next.starts_at).toLocaleDateString('es-AR', { weekday:'short', day:'numeric', timeZone:'America/Argentina/Buenos_Aires' }).replace('.', '')}
               </div>
               <div className="font-display text-[30px] italic text-accent">
-                {new Date(next.starts_at).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12:false })}
+                {new Date(next.starts_at).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Argentina/Buenos_Aires' })}
               </div>
             </div>
             <div className="flex items-center gap-2.5 mt-3.5">

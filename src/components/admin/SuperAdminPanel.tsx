@@ -182,7 +182,7 @@ export function SuperAdminPanel({ shops, metrics }: { shops: Row[]; metrics: Met
                         <Td><span className="font-mono text-[12px] text-dark-muted">{s.barbers_count}</span></Td>
                         <Td><span className="font-mono text-[12px] text-dark-muted">{s.services_count}</span></Td>
                         <Td><span className="font-mono text-[12px] text-dark-muted">{s.appointments_count}</span></Td>
-                        <Td><span className="text-[11px] text-dark-muted">{new Date(s.created_at).toLocaleDateString('es-AR')}</span></Td>
+                        <Td><span className="text-[11px] text-dark-muted">{new Date(s.created_at).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</span></Td>
                         <Td className="text-right whitespace-nowrap">
                           <button
                             type="button"
@@ -228,7 +228,7 @@ export function SuperAdminPanel({ shops, metrics }: { shops: Row[]; metrics: Met
                     </div>
                   </div>
                   <div className="text-[11px] text-dark-muted font-mono">
-                    {new Date(s.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                    {new Date(s.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' , timeZone: 'America/Argentina/Buenos_Aires' })}
                   </div>
                 </div>
               ))}

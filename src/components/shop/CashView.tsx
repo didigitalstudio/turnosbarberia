@@ -147,7 +147,7 @@ function SalesList({ sales, products }: { sales: Sale[]; products: Product[] }) 
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-medium text-bg truncate">{label(s)}</div>
               <div className="text-[11px] text-dark-muted mt-0.5 truncate">
-                {new Date(s.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                {new Date(s.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' })}
                 {s.customer_name ? ` · ${s.customer_name}` : ''} · {labelMethod(s.payment_method)}
               </div>
             </div>
@@ -167,7 +167,7 @@ function SalesList({ sales, products }: { sales: Sale[]; products: Product[] }) 
             {sales.map((s, i) => (
               <tr key={s.id} className={`${i < sales.length - 1 ? 'border-b border-dark-line' : ''} hover:bg-dark/30 transition`}>
                 <td className="px-4 py-3 font-mono text-[12px] text-bg whitespace-nowrap">
-                  {new Date(s.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  {new Date(s.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' })}
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center gap-1.5 text-[12px] text-bg">
@@ -200,7 +200,7 @@ function ExpensesList({ expenses }: { expenses: Expense[] }) {
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-medium text-bg truncate capitalize">{e.category}</div>
               <div className="text-[11px] text-dark-muted mt-0.5 truncate">
-                {new Date(e.paid_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                {new Date(e.paid_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' })}
                 {e.description ? ` · ${e.description}` : ''} · {labelMethod(e.payment_method)}
               </div>
             </div>
@@ -219,7 +219,7 @@ function ExpensesList({ expenses }: { expenses: Expense[] }) {
             {expenses.map((e, i) => (
               <tr key={e.id} className={`${i < expenses.length - 1 ? 'border-b border-dark-line' : ''}`}>
                 <td className="px-4 py-3 font-mono text-[12px] text-bg">
-                  {new Date(e.paid_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  {new Date(e.paid_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' })}
                 </td>
                 <td className="px-4 py-3 text-[13px] text-bg capitalize">{e.category}</td>
                 <td className="px-4 py-3 text-[12px] text-dark-muted">{e.description || '—'}</td>
@@ -501,7 +501,7 @@ function Th({ children, className = '' }: { children: React.ReactNode; className
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' });
 }
 
 function labelMethod(m: string) {

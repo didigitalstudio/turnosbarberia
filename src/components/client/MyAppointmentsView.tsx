@@ -78,7 +78,7 @@ export function MyAppointmentsView({ slug, upcoming, history }: { slug: string; 
                   <DateChip date={d} variant="light" />
                   <div className="flex-1">
                     <div className="text-sm font-medium">{a.services?.name}</div>
-                    <div className="text-[11px] text-muted mt-0.5">con {a.barbers?.name} · {d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12:false })}</div>
+                    <div className="text-[11px] text-muted mt-0.5">con {a.barbers?.name} · {d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12:false , timeZone: 'America/Argentina/Buenos_Aires' })}</div>
                   </div>
                   <Icon name="chevron-right" size={18} color="#7A766E"/>
                 </div>
@@ -105,7 +105,7 @@ export function MyAppointmentsView({ slug, upcoming, history }: { slug: string; 
                     <span className="w-1.5 h-1.5 rounded-full bg-muted"/>
                     <div className="flex-1">
                       <div className="text-[13px] font-medium">{a.services?.name}</div>
-                      <div className="text-[11px] text-muted">{d.toLocaleDateString('es-AR', { day:'2-digit', month:'short' }).replace('.','')} · con {a.barbers?.name}</div>
+                      <div className="text-[11px] text-muted">{d.toLocaleDateString('es-AR', { day:'2-digit', month:'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.','')} · con {a.barbers?.name}</div>
                     </div>
                     <Link href={reservar((a as any).service_id || '')} className="text-[11px] text-muted underline py-2 px-1 active:opacity-60 transition">Repetir</Link>
                   </div>
@@ -135,7 +135,7 @@ function FeaturedCard({ a, reservarHref, pending, onCancel }: { a: Upcoming; res
           <div className="text-base font-medium mt-2.5">{a.services?.name}</div>
           <div className="text-[12px] text-dark-muted mt-0.5">con {a.barbers?.name} · {a.services?.duration_mins} min</div>
           <div className="font-display text-[28px] italic mt-2.5 text-accent">
-            {d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12: false })}
+            {d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' })}
           </div>
         </div>
       </div>
@@ -154,8 +154,8 @@ function FeaturedCard({ a, reservarHref, pending, onCancel }: { a: Upcoming; res
 }
 
 function DateChip({ date, variant }: { date: Date; variant: 'light' | 'dark' }) {
-  const wd = date.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.','').slice(0,3);
-  const m = date.toLocaleDateString('es-AR', { month: 'short' }).replace('.','');
+  const wd = date.toLocaleDateString('es-AR', { weekday: 'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.','').slice(0,3);
+  const m = date.toLocaleDateString('es-AR', { month: 'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.','');
   return (
     <div className={`rounded-m text-center ${variant === 'dark' ? 'bg-dark-card text-bg px-3 py-2.5 min-w-[56px]' : 'bg-bg px-2.5 py-2 min-w-[48px]'}`}>
       <div className={`text-[10px] uppercase ${variant === 'dark' ? 'text-dark-muted' : 'text-muted'}`}>{wd}</div>

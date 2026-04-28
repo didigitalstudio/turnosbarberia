@@ -40,7 +40,8 @@ export function AgendaSummary({ appointments, sales, dayISO }: { appointments: A
   const top = [...byBarber.values()].sort((x, y) => y.count - x.count)[0];
 
   const dayLabel = new Date(dayISO + 'T00:00:00').toLocaleDateString('es-AR', {
-    weekday: 'long', day: 'numeric', month: 'long'
+    weekday: 'long', day: 'numeric', month: 'long',
+    timeZone: 'America/Argentina/Buenos_Aires'
   });
 
   return (
@@ -129,5 +130,5 @@ function Row({ label, value }: { label: string; value: number }) {
 }
 
 function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' });
 }
