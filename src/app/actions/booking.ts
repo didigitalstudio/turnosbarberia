@@ -159,6 +159,9 @@ export async function createBooking(input: z.infer<typeof BookingSchema>) {
         .from('profiles')
         .update({ shop_id: shop.id })
         .eq('id', user.id);
+    }
+  }
+
   // Reprogramación: cancelar el turno viejo (si pertenece al user logueado
   // y al mismo shop). Si el cancel falla, NO rollbackeamos el nuevo turno —
   // mejor terminar con el turno nuevo creado y un viejo huérfano que dejar
