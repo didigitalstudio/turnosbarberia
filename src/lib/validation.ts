@@ -10,7 +10,7 @@ import { z } from 'zod';
 export const NAME_RE = /^[\p{L}\s'.-]{2,80}$/u;
 
 /** Líneas de texto cortas: nombres de shop/servicios/barberos. Más permisivo que NAME_RE. */
-export const NAME_LINE_RE = /^[\p{L}\p{N}\s'.,&·()-]{2,80}$/u;
+export const NAME_LINE_RE = /^[\p{L}\p{N}\s'.,&·()+\/:#%°-]{2,80}$/u;
 
 /** Teléfonos: dígitos, espacios, paréntesis, guiones, signo +. */
 export const PHONE_RE = /^[+\d\s()-]{6,30}$/;
