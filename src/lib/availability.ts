@@ -1,4 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { isoFromARLocal, partsInAR, SHOP_OFFSET } from '@/lib/tz';
 
 const SLOT_GRANULARITY_MIN = 30;
 
@@ -10,8 +11,15 @@ function minToHM(mins: number) { return `${pad(Math.floor(mins / 60))}:${pad(min
 
 export async function getAvailableSlots(shopId: string, barberId: string, serviceId: string, dateISO: string) {
   const supabase = createServerClient();
-  const date = new Date(dateISO + 'T00:00:00-03:00');
-  const dayOfWeek = date.getDay();
+
+  // Anclamos al mediodía ARG: en cualquier runtime el `dow` corresponde al
+  // día de la semana en ARG (no al UTC).
+  const dayAnchor = new Date(`${dateISO}T12:00:00${SHOP_OFFSET}`);
+  const dayOfWeek = partsInAR(dayAnchor).dow;
+
+  // Rango UTC equivalente a [00:00 ARG, 24:00 ARG) para filtrar appointments.
+  const dayStartUTC = new Date(`${dateISO}T00:00:00${SHOP_OFFSET}`).toISOString();
+  const dayEndUTC = new Date(`${dateISO}T24:00:00${SHOP_OFFSET}`).toISOString();
 
   const [{ data: service }, { data: schedule }, { data: appts }] = await Promise.all([
     supabase.from('services').select('duration_mins').eq('id', serviceId).eq('shop_id', shopId).single(),
@@ -24,8 +32,8 @@ export async function getAvailableSlots(shopId: string, barberId: string, servic
       .select('starts_at, ends_at')
       .eq('shop_id', shopId)
       .eq('barber_id', barberId)
-      .gte('starts_at', new Date(date.getTime()).toISOString())
-      .lt('starts_at', new Date(date.getTime() + 86400000).toISOString())
+      .gte('starts_at', dayStartUTC)
+      .lt('starts_at', dayEndUTC)
       .neq('status', 'cancelled')
   ]);
 
@@ -37,18 +45,22 @@ export async function getAvailableSlots(shopId: string, barberId: string, servic
 
   const slots: Slot[] = [];
   for (let t = startMin; t + dur <= endMin; t += SLOT_GRANULARITY_MIN) {
-    const slotStart = new Date(date);
-    slotStart.setHours(Math.floor(t / 60), t % 60, 0, 0);
-    const slotEnd = new Date(slotStart.getTime() + dur * 60_000);
+    const hh = Math.floor(t / 60);
+    const mm = t % 60;
+    // Construimos el ISO desde la hora ARG, no desde el TZ del runtime.
+    // Antes: slotStart.setHours(...) en runtime UTC producía 15:00 UTC = 12hs ARG.
+    const slotIsoUTC = isoFromARLocal(dateISO, hh, mm);
+    const slotStartMs = new Date(slotIsoUTC).getTime();
+    const slotEndMs = slotStartMs + dur * 60_000;
 
     const overlaps = (appts || []).some(a => {
       const aStart = new Date(a.starts_at).getTime();
       const aEnd = new Date(a.ends_at).getTime();
-      return slotStart.getTime() < aEnd && slotEnd.getTime() > aStart;
+      return slotStartMs < aEnd && slotEndMs > aStart;
     });
 
-    const inPast = slotStart.getTime() < Date.now();
-    slots.push({ time: minToHM(t), iso: slotStart.toISOString(), taken: overlaps || inPast });
+    const inPast = slotStartMs < Date.now();
+    slots.push({ time: minToHM(t), iso: slotIsoUTC, taken: overlaps || inPast });
   }
 
   return slots;

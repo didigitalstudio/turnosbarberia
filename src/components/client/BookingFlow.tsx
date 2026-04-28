@@ -250,7 +250,8 @@ export function BookingFlow({
                 barberId === 'any' ? 'Te asignamos el disponible' : barbers.find(b => b.id === barberId)?.name || ''
               }/>
               <Row label="Cuándo" value={slotISO ? new Date(slotISO).toLocaleString('es-AR', {
-                weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
+                weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hour12:false,
+                timeZone:'America/Argentina/Buenos_Aires'
               }).replace('.', '') : ''}/>
             </div>
 
@@ -369,7 +370,7 @@ function buildNextDays(n: number, workingDays?: number[]) {
     out.push({
       iso: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
       day: d.getDate(),
-      wd: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.','').slice(0,3),
+      wd: d.toLocaleDateString('es-AR', { weekday: 'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.','').slice(0,3),
       label: i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : '',
       closed: openDays ? !openDays.has(dow) : false
     });

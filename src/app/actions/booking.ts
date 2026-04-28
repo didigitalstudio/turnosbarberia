@@ -14,6 +14,7 @@ import {
   sendBookingConfirmationToCustomer,
   sendBookingNotificationToAdmin
 } from '@/lib/email';
+import { partsInAR } from '@/lib/tz';
 
 const NAME_RE  = /^[\p{L}\s'.-]{2,80}$/u;
 const PHONE_RE = /^[+\d\s()-]{6,30}$/;
@@ -89,24 +90,24 @@ export async function createBooking(input: z.infer<typeof BookingSchema>) {
     if (!barber) return { error: 'Ese barbero no pertenece a esta barbería.' };
   }
 
-  // Validar que el horario caiga dentro del schedule del barbero para ese día.
-  const dayOfWeek = startsAt.getDay();
+  // Validar que el horario caiga dentro del schedule del barbero para ese día,
+  // SIEMPRE en hora local ARG. Si usáramos getDay()/getHours() directos,
+  // Vercel (UTC) interpretaría las horas en UTC y la validación pasaría por
+  // azar (o rebotaría reservas válidas).
+  const startAR = partsInAR(startsAt);
+  const endAR = partsInAR(endsAt);
   const { data: schedule } = await admin
     .from('schedules')
     .select('start_time, end_time, is_working')
     .eq('shop_id', shop.id)
     .eq('barber_id', barberId)
-    .eq('day_of_week', dayOfWeek)
+    .eq('day_of_week', startAR.dow)
     .maybeSingle();
   if (!schedule || !schedule.is_working) {
     return { error: 'El barbero no trabaja ese día.' };
   }
-  const hh = String(startsAt.getHours()).padStart(2, '0');
-  const mm = String(startsAt.getMinutes()).padStart(2, '0');
-  const slotStart = `${hh}:${mm}`;
-  const endHh = String(endsAt.getHours()).padStart(2, '0');
-  const endMm = String(endsAt.getMinutes()).padStart(2, '0');
-  const slotEnd = `${endHh}:${endMm}`;
+  const slotStart = `${startAR.hh}:${startAR.mm}`;
+  const slotEnd = `${endAR.hh}:${endAR.mm}`;
   if (slotStart < schedule.start_time || slotEnd > schedule.end_time) {
     return { error: 'Ese horario está fuera del horario del barbero.' };
   }

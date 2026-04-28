@@ -149,7 +149,7 @@ export async function sendBookingNotificationToAdmin(args: {
   startsAt: string;
 }): Promise<SendResult> {
   const when = formatWhen(args.startsAt);
-  const time = new Date(args.startsAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const time = new Date(args.startsAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' });
   const body = `
     <div style="font-family:'Instrument Serif',Times,serif;font-size:24px;line-height:1.15;margin:0 0 6px;">Nuevo turno</div>
     <div style="color:#7A766E;font-size:12px;margin-bottom:16px;">${escapeHtml(args.shopName)}</div>
@@ -217,8 +217,15 @@ export async function sendOwnerPasswordReset(args: {
 }
 
 function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('es-AR', {
-    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false
+  // Forzamos timeZone ARG: si no lo hacemos, el render server-side cae en
+  // UTC y el dueño/cliente recibe el mail con una hora distinta a la real.
+  return new Date(iso).toLocaleString('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires'
   });
 }

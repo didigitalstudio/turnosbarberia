@@ -253,7 +253,7 @@ function DayView({
       {/* Header con nueva cita */}
       <div className="px-5 md:px-8 flex items-center gap-2 pb-2">
         <div className="font-mono text-[10px] tracking-[2px] text-dark-muted flex-1 truncate">
-          {new Date(dayISO + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric' }).toUpperCase()} · VISTA DÍA
+          {new Date(dayISO + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric' , timeZone: 'America/Argentina/Buenos_Aires' }).toUpperCase()} · VISTA DÍA
         </div>
         <Link href={`/shop/nuevo?d=${dayISO}`} aria-label="Nuevo turno"
           className="w-9 h-9 rounded-s grid place-items-center text-white bg-accent active:scale-95 transition">
@@ -584,7 +584,7 @@ function AppointmentCard({
   const isInProgress = appointment.status === 'in_progress' || (now >= startMs && now < endMs && appointment.status !== 'completed' && appointment.status !== 'cancelled');
   const isDone = appointment.status === 'completed';
   const isNoShow = appointment.status === 'no_show';
-  const time = new Date(appointment.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const time = new Date(appointment.starts_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false , timeZone: 'America/Argentina/Buenos_Aires' });
 
   const baseBg = `oklch(0.3 0.04 ${hue})`;
   const baseBorder = `oklch(0.7 0.1 ${hue})`;
@@ -768,7 +768,7 @@ function buildDays(n: number, workingDays?: number[]) {
     out.push({
       iso: localISO(d),
       day: d.getDate(),
-      wd: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '').slice(0, 3),
+      wd: d.toLocaleDateString('es-AR', { weekday: 'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.', '').slice(0, 3),
       closed: openDays ? !openDays.has(dow) : false
     });
   }
@@ -848,7 +848,7 @@ function buildWeek(weekStartISO: string) {
     out.push({
       iso: localISO(d),
       day: d.getDate(),
-      wd: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '').slice(0, 3)
+      wd: d.toLocaleDateString('es-AR', { weekday: 'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.', '').slice(0, 3)
     });
   }
   return out;
@@ -858,6 +858,6 @@ function formatWeekRange(weekStartISO: string) {
   const start = new Date(weekStartISO + 'T12:00:00');
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).replace('.', '');
+  const fmt = (d: Date) => d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' , timeZone: 'America/Argentina/Buenos_Aires' }).replace('.', '');
   return `SEMANA DEL ${fmt(start)} AL ${fmt(end)}`.toUpperCase();
 }
