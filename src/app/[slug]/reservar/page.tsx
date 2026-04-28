@@ -10,7 +10,7 @@ export default async function ReservarPage({
   searchParams
 }: {
   params: { slug: string };
-  searchParams: { service?: string; barber?: string };
+  searchParams: { service?: string; barber?: string; reschedule?: string };
 }) {
   const shop = await getShopBySlug(params.slug);
   if (!shop) notFound();
@@ -41,15 +41,35 @@ export default async function ReservarPage({
     profile = (data as typeof profile) || null;
   }
 
+  // Reprogramación: si vino ?reschedule=<id>, validamos que el turno
+  // pertenece al user logueado y a este shop. Si no, lo ignoramos.
+  // (El server action vuelve a chequear; esto es solo para la UI.)
+  let rescheduleFromId: string | undefined;
+  let rescheduleService: string | undefined;
+  if (user && searchParams.reschedule) {
+    const { data: prev } = await supabase
+      .from('appointments')
+      .select('id, service_id, status')
+      .eq('id', searchParams.reschedule)
+      .eq('shop_id', shop.id)
+      .eq('profile_id', user.id)
+      .maybeSingle<{ id: string; service_id: string; status: string }>();
+    if (prev && prev.status !== 'cancelled') {
+      rescheduleFromId = prev.id;
+      rescheduleService = prev.service_id;
+    }
+  }
+
   return (
     <BookingFlow
       shopSlug={params.slug}
       services={services || []}
       barbers={barbers || []}
-      preselectedService={searchParams.service}
+      preselectedService={rescheduleService || searchParams.service}
       preselectedBarber={searchParams.barber}
       profile={profile}
       workingDays={workingDays.length > 0 ? workingDays : undefined}
+      rescheduleFromId={rescheduleFromId}
     />
   );
 }

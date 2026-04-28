@@ -13,7 +13,7 @@ import type { Service, Barber } from '@/types/db';
 type Slot = { time: string; iso: string; taken: boolean };
 
 export function BookingFlow({
-  shopSlug, services, barbers, preselectedService, preselectedBarber, profile, workingDays
+  shopSlug, services, barbers, preselectedService, preselectedBarber, profile, workingDays, rescheduleFromId
 }: {
   shopSlug: string;
   services: Service[]; barbers: Barber[];
@@ -21,6 +21,8 @@ export function BookingFlow({
   profile: { name: string; email: string | null; phone: string | null } | null;
   /** Días de la semana en los que al menos un barbero trabaja (0=Dom..6=Sab). Si no se pasa, se asumen todos abiertos. */
   workingDays?: number[];
+  /** Si se pasa, después de confirmar el nuevo turno se cancela el viejo (reprogramación). */
+  rescheduleFromId?: string;
 }) {
   const [step, setStep] = useState<1|2|3>(preselectedService ? 2 : 1);
   const [prevStep, setPrevStep] = useState<1|2|3>(step);
@@ -333,7 +335,8 @@ export function BookingFlow({
                 startsAt: slotISO!,
                 customerName: name,
                 customerPhone: phone,
-                customerEmail: email
+                customerEmail: email,
+                ...(rescheduleFromId ? { rescheduleFromId } : {})
               });
               if (res?.error) setError(res.error);
             })}
