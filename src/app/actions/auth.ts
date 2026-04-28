@@ -1,6 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { LAST_SHOP_COOKIE } from '@/lib/shop-context';
 
@@ -25,8 +25,24 @@ async function destinationForCurrentUser(supabase: ReturnType<typeof createClien
     .select('is_admin, shop_id')
     .eq('id', user.id)
     .maybeSingle<{ is_admin: boolean; shop_id: string | null }>();
-  if (profile?.is_admin) return '/shop';
-  if (profile && profile.shop_id === null) return '/onboarding';
+
+  // Dueño que terminó el wizard → su panel admin.
+  if (profile?.is_admin && profile.shop_id) return '/shop';
+  // Dueño en proceso de registro (cuenta creada pero sin shop) → wizard.
+  if (profile?.is_admin && !profile.shop_id) return '/onboarding';
+
+  // Cliente atado a una barbería → directo a su barbería.
+  if (profile?.shop_id) {
+    const admin = createAdminClient();
+    const { data: shop } = await admin
+      .from('shops')
+      .select('slug')
+      .eq('id', profile.shop_id)
+      .maybeSingle<{ slug: string }>();
+    if (shop?.slug) return `/${shop.slug}`;
+  }
+
+  // Fallback: cookie de "última barbería visitada" (visitor sin atar).
   const lastShop = safeShopSlug(cookies().get(LAST_SHOP_COOKIE)?.value);
   if (lastShop) return `/${lastShop}`;
   return '/';
