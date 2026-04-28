@@ -21,8 +21,13 @@ export function MyAppointmentsView({ slug, upcoming, history }: { slug: string; 
 
   const featured = upcoming[0];
   const rest = upcoming.slice(1);
-  const reservar = (serviceId?: string) =>
-    `/${slug}/reservar${serviceId ? `?service=${serviceId}` : ''}`;
+  const reservar = (serviceId?: string, rescheduleId?: string) => {
+    const qs = new URLSearchParams();
+    if (serviceId) qs.set('service', serviceId);
+    if (rescheduleId) qs.set('reschedule', rescheduleId);
+    const tail = qs.toString();
+    return `/${slug}/reservar${tail ? `?${tail}` : ''}`;
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -55,7 +60,7 @@ export function MyAppointmentsView({ slug, upcoming, history }: { slug: string; 
                 ctaHref={reservar()}
               />
             ) : (
-              <FeaturedCard a={featured} reservarHref={reservar((featured as any).service_id || '')} pending={pending} onCancel={(id) => {
+              <FeaturedCard a={featured} reservarHref={reservar((featured as any).service_id || '', featured.id)} pending={pending} onCancel={(id) => {
                 if (!confirm('¿Cancelar este turno? No se puede deshacer.')) return;
                 start(async () => {
                   setError(null);

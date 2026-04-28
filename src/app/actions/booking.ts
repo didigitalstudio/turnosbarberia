@@ -20,13 +20,17 @@ const NAME_RE  = /^[\p{L}\s'.-]{2,80}$/u;
 const PHONE_RE = /^[+\d\s()-]{6,30}$/;
 
 const BookingSchema = z.object({
-  shopSlug:      z.string().min(1).max(50),
-  serviceId:     z.string().uuid(),
-  barberId:      z.string().uuid().or(z.literal('any')),
-  startsAt:      z.string().datetime(),
-  customerName:  z.string().trim().regex(NAME_RE, 'Nombre inválido'),
-  customerPhone: z.string().trim().regex(PHONE_RE, 'Teléfono inválido'),
-  customerEmail: z.string().trim().email().max(120)
+  shopSlug:          z.string().min(1).max(50),
+  serviceId:         z.string().uuid(),
+  barberId:          z.string().uuid().or(z.literal('any')),
+  startsAt:          z.string().datetime(),
+  customerName:      z.string().trim().regex(NAME_RE, 'Nombre inválido'),
+  customerPhone:     z.string().trim().regex(PHONE_RE, 'Teléfono inválido'),
+  customerEmail:     z.string().trim().email().max(120),
+  // Si el user está reprogramando un turno existente, mandamos el id viejo
+  // para cancelarlo después del insert exitoso. Sólo se cancela si el viejo
+  // pertenece al user logueado y al mismo shop (defense-in-depth).
+  rescheduleFromId:  z.string().uuid().optional()
 });
 
 export async function createBooking(input: z.infer<typeof BookingSchema>) {
@@ -137,6 +141,23 @@ export async function createBooking(input: z.infer<typeof BookingSchema>) {
       return { error: 'Ese horario se acaba de ocupar. Probá con otro.' };
     }
     return { error: insErr.message };
+  }
+
+  // Reprogramación: cancelar el turno viejo (si pertenece al user logueado
+  // y al mismo shop). Si el cancel falla, NO rollbackeamos el nuevo turno —
+  // mejor terminar con el turno nuevo creado y un viejo huérfano que dejar
+  // al cliente sin reserva.
+  if (data.rescheduleFromId && user) {
+    const { error: cancelErr } = await admin
+      .from('appointments')
+      .update({ status: 'cancelled' })
+      .eq('id', data.rescheduleFromId)
+      .eq('shop_id', shop.id)
+      .eq('profile_id', user.id)
+      .neq('status', 'cancelled');
+    if (cancelErr) {
+      console.error('[booking] reschedule cancel failed:', cancelErr.message);
+    }
   }
 
   // Whitelist cookie para que invitados puedan ver la página de confirmación.
