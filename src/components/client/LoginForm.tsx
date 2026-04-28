@@ -113,7 +113,7 @@ export function LoginForm() {
             href="/registro"
             className="text-[13px] text-dark-muted underline underline-offset-4 hover:text-bg transition text-center"
           >
-            ¿No tenés cuenta todavía? Registrar mi barbería <Icon name="arrow-right" size={12} color="#8C8A83" />
+            ¿No tenés cuenta? Registrate <Icon name="arrow-right" size={12} color="#8C8A83" />
           </Link>
         </div>
       </div>
