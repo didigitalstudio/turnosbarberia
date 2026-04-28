@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { LAST_SHOP_COOKIE } from '@/lib/shop-context';
 
 // Whitelist de paths permitidos como destino post-login.
@@ -48,9 +48,23 @@ async function defaultDestination(supabase: ReturnType<typeof createClient>): Pr
     .eq('id', user.id)
     .maybeSingle<{ is_admin: boolean; shop_id: string | null }>();
 
-  if (profile?.is_admin) return '/shop';
-  if (profile && profile.shop_id === null) return '/onboarding';
+  // Dueño que terminó el wizard → panel admin.
+  if (profile?.is_admin && profile.shop_id) return '/shop';
+  // Dueño en proceso de registro → wizard.
+  if (profile?.is_admin && !profile.shop_id) return '/onboarding';
 
+  // Cliente atado a una barbería → su barbería.
+  if (profile?.shop_id) {
+    const admin = createAdminClient();
+    const { data: shop } = await admin
+      .from('shops')
+      .select('slug')
+      .eq('id', profile.shop_id)
+      .maybeSingle<{ slug: string }>();
+    if (shop?.slug) return `/${shop.slug}`;
+  }
+
+  // Fallback: cookie de última barbería visitada.
   const lastShop = safeShopSlug(cookies().get(LAST_SHOP_COOKIE)?.value);
   if (lastShop) return `/${lastShop}`;
 

@@ -5,7 +5,12 @@
  * Hasta que verifiquemos un dominio propio usamos el remitente default de Resend.
  */
 
-const DEFAULT_FROM = 'TurnosBarbería <onboarding@resend.dev>';
+// Default usable solo en sandbox: Resend SOLO permite mandar al email del
+// owner de la cuenta cuando from = onboarding@resend.dev. Para mandar a
+// terceros (clientes y dueños random) hay que verificar un dominio propio
+// en Resend y setear EMAIL_FROM en producción, ej:
+//   EMAIL_FROM="TurnosBarbería <notificaciones@didigitalstudio.com>"
+const DEFAULT_FROM = process.env.EMAIL_FROM || 'TurnosBarbería <onboarding@resend.dev>';
 const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'info@didigitalstudio.com';
 
 export type SendResult =
@@ -20,7 +25,10 @@ export async function sendEmail(params: {
   replyTo?: string;
 }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
-  if (!key) return { ok: true, skipped: true };
+  if (!key) {
+    console.warn('[email] RESEND_API_KEY no configurada — mail skip:', params.subject, '→', params.to);
+    return { ok: true, skipped: true };
+  }
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -40,12 +48,16 @@ export async function sendEmail(params: {
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
+      // Loguear detallado para que aparezca en Vercel logs cuando falla.
+      console.error('[email] Resend rechazó:', res.status, text.slice(0, 400),
+        '— from:', params.from || DEFAULT_FROM, '→', params.to);
       return { ok: false, error: `Resend ${res.status}: ${text.slice(0, 200)}` };
     }
 
     const data = (await res.json().catch(() => null)) as { id?: string } | null;
     return { ok: true, id: data?.id };
   } catch (e: any) {
+    console.error('[email] fetch falló:', e?.message);
     return { ok: false, error: e?.message || 'fetch failed' };
   }
 }

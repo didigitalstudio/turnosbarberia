@@ -143,6 +143,22 @@ export async function createBooking(input: z.infer<typeof BookingSchema>) {
     return { error: insErr.message };
   }
 
+  // Atar el cliente a esta barbería en su PRIMERA reserva. A partir de acá,
+  // el login lo manda derecho a `/{slug}` sin que tenga que recordar la URL.
+  // Si el user ya tiene shop_id (vino de otro shop) no lo pisamos: queda con
+  // el primero. Si is_admin = true (es dueño), tampoco — el shop_id del
+  // dueño es su panel, no una barbería de cliente.
+  if (user) {
+    const { data: prof } = await admin
+      .from('profiles')
+      .select('is_admin, shop_id')
+      .eq('id', user.id)
+      .maybeSingle<{ is_admin: boolean; shop_id: string | null }>();
+    if (prof && !prof.is_admin && !prof.shop_id) {
+      await admin
+        .from('profiles')
+        .update({ shop_id: shop.id })
+        .eq('id', user.id);
   // Reprogramación: cancelar el turno viejo (si pertenece al user logueado
   // y al mismo shop). Si el cancel falla, NO rollbackeamos el nuevo turno —
   // mejor terminar con el turno nuevo creado y un viejo huérfano que dejar
