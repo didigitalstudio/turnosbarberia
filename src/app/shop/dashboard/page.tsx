@@ -47,9 +47,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   const period = (['hoy', 'semana', 'mes', '30d'].includes(searchParams.p || '') ? searchParams.p : '30d') as Period;
   const { start, end } = periodRange(period);
+  const isPro = (shop.plan || '').toLowerCase() === 'pro';
 
   const supabase = createClient();
 
+  // Caja (sales/expenses) es feature Pro. En Starter skipeamos las queries
+  // y no renderizamos el bloque "Resumen de caja" — el dueño no tiene UI
+  // para cargar egresos en Starter, así que mostrar Egresos $0 confunde.
   const [
     { data: sales },
     { data: expenses },
@@ -57,18 +61,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     { data: barbers },
     { data: services }
   ] = await Promise.all([
-    supabase
-      .from('sales')
-      .select('id, amount, created_at, type, appointment_id, product_id, description')
-      .eq('shop_id', shop.id)
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString()),
-    supabase
-      .from('expenses')
-      .select('id, amount, paid_at, category')
-      .eq('shop_id', shop.id)
-      .gte('paid_at', start.toISOString())
-      .lte('paid_at', end.toISOString()),
+    isPro
+      ? supabase
+          .from('sales')
+          .select('id, amount, created_at, type, appointment_id, product_id, description')
+          .eq('shop_id', shop.id)
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+      : Promise.resolve({ data: [] as any[] } as any),
+    isPro
+      ? supabase
+          .from('expenses')
+          .select('id, amount, paid_at, category')
+          .eq('shop_id', shop.id)
+          .gte('paid_at', start.toISOString())
+          .lte('paid_at', end.toISOString())
+      : Promise.resolve({ data: [] as any[] } as any),
     supabase
       .from('appointments')
       .select('id, starts_at, status, profile_id, customer_email, barber_id, service_id')
@@ -85,12 +93,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const barbersList = (barbers as any[]) || [];
   const servicesList = (services as any[]) || [];
 
-  const revenue = salesList.reduce((s, x) => s + Number(x.amount || 0), 0);
-  const expenseTotal = expensesList.reduce((s, x) => s + Number(x.amount || 0), 0);
-  const profit = revenue - expenseTotal;
+  // Lookup de servicios por id (lo precisamos antes que en Pro para poder
+  // estimar la facturación de Starter desde el precio de cada servicio).
+  const serviceById = new Map<string, { name: string; price: number }>();
+  for (const s of servicesList) serviceById.set(s.id, { name: s.name, price: Number(s.price) });
 
   const activeAppts = apptsList.filter(a => a.status !== 'cancelled');
   const countedAppts = apptsList.filter(a => a.status === 'completed' || a.status === 'confirmed' || a.status === 'in_progress');
+
+  // En Starter no hay caja: estimamos facturación con sum(service.price)
+  // de los turnos cumplidos/confirmados. En Pro usamos las sales reales.
+  const revenue = isPro
+    ? salesList.reduce((s, x) => s + Number(x.amount || 0), 0)
+    : countedAppts.reduce((sum, a) => sum + (serviceById.get(a.service_id)?.price || 0), 0);
+  const expenseTotal = expensesList.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const profit = revenue - expenseTotal;
+
   const apptsCount = activeAppts.length;
   const ticket = apptsCount ? Math.round(revenue / apptsCount) : 0;
   const noShow = apptsList.filter(a => a.status === 'no_show').length;
@@ -108,7 +126,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const priorEmails = new Set(((priorAppts as any[]) || []).map(x => x.customer_email));
   const newClients = Array.from(emailsInRange).filter(e => !priorEmails.has(e)).length;
 
-  // Facturación por día del período (barras).
+  // Facturación por día del período (barras). En Pro usamos sales (caja
+  // real); en Starter agregamos service.price por turno cumplido.
   const daysCount = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
   const buckets: Array<{ date: Date; amount: number }> = [];
   for (let i = 0; i < daysCount; i++) {
@@ -117,16 +136,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     d.setHours(0, 0, 0, 0);
     buckets.push({ date: d, amount: 0 });
   }
-  for (const s of salesList) {
-    const t = new Date(s.created_at).getTime();
-    const idx = Math.floor((t - start.getTime()) / 86400000);
-    if (idx >= 0 && idx < buckets.length) buckets[idx].amount += Number(s.amount || 0);
+  if (isPro) {
+    for (const s of salesList) {
+      const t = new Date(s.created_at).getTime();
+      const idx = Math.floor((t - start.getTime()) / 86400000);
+      if (idx >= 0 && idx < buckets.length) buckets[idx].amount += Number(s.amount || 0);
+    }
+  } else {
+    for (const a of countedAppts) {
+      const t = new Date(a.starts_at).getTime();
+      const idx = Math.floor((t - start.getTime()) / 86400000);
+      const price = serviceById.get(a.service_id)?.price || 0;
+      if (idx >= 0 && idx < buckets.length) buckets[idx].amount += price;
+    }
   }
   const maxBucket = Math.max(1, ...buckets.map(b => b.amount));
 
   // Top barberos (por facturación estimada: sum(service.price) de appts activos).
-  const serviceById = new Map<string, { name: string; price: number }>();
-  for (const s of servicesList) serviceById.set(s.id, { name: s.name, price: Number(s.price) });
   const barberById = new Map<string, { name: string; initials: string; hue: number }>();
   for (const b of barbersList) barberById.set(b.id, b);
   const byBarber = new Map<string, { name: string; revenue: number; count: number }>();
@@ -171,7 +197,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 mt-4">
-          <Kpi label="Facturación" value={money(revenue)} suffix={`${salesList.length} cobros`} />
+          <Kpi
+            label="Facturación"
+            value={money(revenue)}
+            suffix={isPro ? `${salesList.length} cobros` : `${countedAppts.length} turnos`}
+          />
           <Kpi label="Turnos" value={String(apptsCount)} suffix={`${countedAppts.length} cumplidos`} />
           <Kpi label="Ticket promedio" value={money(ticket)} suffix="por turno" />
           <Kpi label="No-show" value={`${noShowPct}%`} suffix={`${noShow} faltas`} />
@@ -204,15 +234,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           </section>
         </div>
 
-        {/* Resumen caja */}
-        <section className="mt-6">
-          <SectionLabel>RESUMEN DE CAJA</SectionLabel>
-          <div className="bg-dark-card border border-dark-line rounded-xl p-5 md:p-6 grid grid-cols-3 gap-4">
-            <CashStat label="Ingresos" value={money(revenue)} positive />
-            <CashStat label="Egresos" value={money(expenseTotal)} />
-            <CashStat label="Utilidad" value={money(profit)} highlight={profit >= 0} accent />
-          </div>
-        </section>
+        {/* Resumen caja: solo Pro (Starter no tiene UI para cargar egresos). */}
+        {isPro && (
+          <section className="mt-6">
+            <SectionLabel>RESUMEN DE CAJA</SectionLabel>
+            <div className="bg-dark-card border border-dark-line rounded-xl p-5 md:p-6 grid grid-cols-3 gap-4">
+              <CashStat label="Ingresos" value={money(revenue)} positive />
+              <CashStat label="Egresos" value={money(expenseTotal)} />
+              <CashStat label="Utilidad" value={money(profit)} highlight={profit >= 0} accent />
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
