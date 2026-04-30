@@ -381,9 +381,11 @@ export async function moveAppointment(input: z.infer<typeof MoveSchema>) {
   return { ok: true };
 }
 
-// Estados terminales: una vez que un turno cae acá, no se puede mover más.
-// Evita que un admin marque "completed" → "pending" por error y rompa
-// reportes / caja.
+// Estados que se consideran "cerrados" para drag&drop: no tiene sentido
+// arrastrar un turno que ya pasó / no ocurrió / fue cancelado. El admin
+// puede *cambiar* el estado desde el menú (incluso revertir un no_show
+// si se equivocó), pero para mover el turno en el tiempo, primero
+// debería revertirlo.
 const TERMINAL_STATUSES = new Set(['completed', 'cancelled', 'no_show']);
 
 export async function setAppointmentStatus(
@@ -406,9 +408,6 @@ export async function setAppointmentStatus(
     .eq('shop_id', profile.shop_id)
     .maybeSingle<{ status: string }>();
   if (!current) return { error: 'Turno no encontrado' };
-  if (TERMINAL_STATUSES.has(current.status) && current.status !== status) {
-    return { error: 'Ese turno ya está cerrado y no se puede modificar.' };
-  }
 
   const { error } = await supabase
     .from('appointments')
