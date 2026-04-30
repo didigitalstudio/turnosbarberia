@@ -1,7 +1,11 @@
+'use client';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Avatar } from '@/components/shared/Avatar';
 import { Icon } from '@/components/shared/Icon';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Toast } from '@/components/shared/Toast';
 import { money } from '@/lib/format';
+import { upsertBarber } from '@/app/actions/ajustes';
 import type { Barber, Schedule } from '@/types/db';
 
 const DAY_LABELS = ['L','M','M','J','V','S','D']; // Mon..Sun
@@ -23,6 +27,8 @@ export function TeamView({
   const todayDate = new Date(todayISO);
   const tomorrowDate = new Date(tomorrowISO);
 
+  const [error, setError] = useState<string | null>(null);
+
   if (barbers.length === 0) {
     return (
       <div className="flex-1 overflow-auto px-5 pt-4 pb-5">
@@ -38,6 +44,11 @@ export function TeamView({
 
   return (
     <div className="flex-1 overflow-auto px-5 pt-4 pb-5 md:px-8 md:grid md:grid-cols-2 md:gap-3 md:items-start xl:grid-cols-3">
+      {error && (
+        <div className="md:col-span-2 xl:col-span-3 mb-2.5">
+          <Toast dark tone="error" message={error} onClose={() => setError(null)} autoDismissMs={5000} />
+        </div>
+      )}
       {barbers.map(b => {
         const barberAppts = weekAppts.filter(a => a.barber_id === b.id);
         const todayCount = barberAppts.filter(a => {
@@ -68,8 +79,6 @@ export function TeamView({
         const occupancy = Math.min(100, Math.round((weekCount * 100) / (SLOTS_PER_DAY * working.size || 1)));
 
         const month = monthStats?.[b.id] || { count: 0, revenue: 0 };
-        const commissionPct = Number(b.commission_pct ?? 50);
-        const toPay = Math.round((month.revenue * commissionPct) / 100);
 
         return (
           <div key={b.id} className="bg-dark-card border border-dark-line rounded-2xl px-4 py-3.5 mb-2.5">
@@ -91,24 +100,11 @@ export function TeamView({
               <Stat l="Ocupación" v={`${occupancy}%`}/>
             </div>
 
-            {/* Comisión del mes corriente. Solo cuenta turnos completados —
-                los confirmados todavía no son ingreso real. */}
-            <div className="mt-3 bg-dark rounded-s px-3 py-2.5 border border-dark-line/60">
-              <div className="flex items-baseline justify-between">
-                <div className="text-[9px] text-dark-muted uppercase tracking-[1.5px]">Mes en curso</div>
-                <div className="font-mono text-[10px] text-dark-muted">{commissionPct.toFixed(0)}%</div>
-              </div>
-              <div className="flex items-end justify-between mt-1.5 gap-2">
-                <div>
-                  <div className="font-display text-[22px] text-bg leading-none">{month.count}</div>
-                  <div className="text-[10px] text-dark-muted mt-1">cortes · {money(month.revenue)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-display text-[22px] text-accent leading-none">{money(toPay)}</div>
-                  <div className="text-[10px] text-dark-muted mt-1">a pagar</div>
-                </div>
-              </div>
-            </div>
+            <CommissionPanel
+              barber={b}
+              month={month}
+              onError={setError}
+            />
 
             <div className="flex items-center gap-1.5 mt-3 text-[11px] text-dark-muted">
               <Icon name="clock" size={12} color="#8C8A83"/>
@@ -142,6 +138,128 @@ export function TeamView({
       })}
     </div>
   );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function CommissionPanel({
+  barber, month, onError
+}: {
+  barber: Barber;
+  month: { count: number; revenue: number };
+  onError: (msg: string) => void;
+}) {
+  const initial = clampPct(Number(barber.commission_pct ?? 50));
+  const [pct, setPct] = useState<number>(initial);
+  const [saved, setSaved] = useState<number>(initial);
+  const [, startTransition] = useTransition();
+  const [status, setStatus] = useState<'idle' | 'saving' | 'ok'>('idle');
+  const okTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Si el server vuelve a renderizar con un valor distinto (ej. después de
+  // editar desde Ajustes en otra pestaña), nos sincronizamos.
+  useEffect(() => {
+    const fresh = clampPct(Number(barber.commission_pct ?? 50));
+    if (fresh !== saved) {
+      setSaved(fresh);
+      setPct(fresh);
+    }
+  }, [barber.commission_pct]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toPay = Math.round((month.revenue * pct) / 100);
+
+  const persist = (value: number) => {
+    if (value === saved) return;
+    setStatus('saving');
+    startTransition(async () => {
+      const r = await upsertBarber({
+        id: barber.id,
+        name: barber.name,
+        role: barber.role || '',
+        commission_pct: value
+      });
+      if ((r as any)?.error) {
+        // Rollback al último valor confirmado y notificamos.
+        setPct(saved);
+        setStatus('idle');
+        onError((r as any).error);
+        return;
+      }
+      setSaved(value);
+      setStatus('ok');
+      if (okTimerRef.current) clearTimeout(okTimerRef.current);
+      okTimerRef.current = setTimeout(() => setStatus(s => s === 'ok' ? 'idle' : s), 1500);
+    });
+  };
+
+  const onChange = (raw: string) => {
+    const next = clampPct(Number(raw));
+    setPct(Number.isFinite(next) ? next : 0);
+    // Debounce de 600ms — guardamos sin esperar al blur, así se siente
+    // "vivo" mientras tocás los steppers o tipeás.
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => persist(next), 600);
+  };
+
+  const onBlur = () => {
+    // Forzamos el save inmediato — evita que el user salga de la pantalla
+    // antes de que el debounce dispare.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    persist(pct);
+  };
+
+  return (
+    <div className="mt-3 bg-dark rounded-s px-3 py-2.5 border border-dark-line/60">
+      <div className="flex items-center justify-between">
+        <div className="text-[9px] text-dark-muted uppercase tracking-[1.5px]">Mes en curso</div>
+        <label className="flex items-center gap-1 text-dark-muted">
+          <span className="font-mono text-[10px] uppercase tracking-[1.5px]">Comisión</span>
+          <div className="flex items-center bg-dark-card border border-dark-line rounded-xs focus-within:border-accent transition">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              inputMode="numeric"
+              value={pct}
+              onChange={(e) => onChange(e.target.value)}
+              onBlur={onBlur}
+              aria-label={`Comisión de ${barber.name} en porcentaje`}
+              className="bg-transparent text-bg text-[11px] font-mono w-[36px] text-right outline-none px-1.5 py-0.5"
+            />
+            <span className="font-mono text-[10px] text-dark-muted pr-1.5">%</span>
+          </div>
+          <span className="w-3 h-3 grid place-items-center" aria-live="polite">
+            {status === 'saving' && (
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" aria-label="Guardando" />
+            )}
+            {status === 'ok' && (
+              <Icon name="check" size={10} color="#B6754C"/>
+            )}
+          </span>
+        </label>
+      </div>
+      <div className="flex items-end justify-between mt-1.5 gap-2">
+        <div>
+          <div className="font-display text-[22px] text-bg leading-none">{month.count}</div>
+          <div className="text-[10px] text-dark-muted mt-1">cortes · {money(month.revenue)}</div>
+        </div>
+        <div className="text-right">
+          <div className="font-display text-[22px] text-accent leading-none">{money(toPay)}</div>
+          <div className="text-[10px] text-dark-muted mt-1">a pagar</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function clampPct(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
 }
 
 function Stat({ l, v }: { l: string; v: number | string }) {
