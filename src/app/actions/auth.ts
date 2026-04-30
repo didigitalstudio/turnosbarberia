@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { LAST_SHOP_COOKIE } from '@/lib/shop-context';
 
 const RESERVED_SLUGS = new Set([
-  'api', 'auth', 'shop', 'login', 'registro',
+  'api', 'auth', 'shop', 'login', 'registro', 'cuenta',
   'demo', 'desarrollo', 'onboarding', 'admin', 's', 'desa'
 ]);
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,40}[a-z0-9]$/;
@@ -228,4 +228,61 @@ export async function signOut() {
   const supabase = createClient();
   await supabase.auth.signOut();
   redirect('/login');
+}
+
+// Pide a Supabase un email con link de recuperación. Diseñado para no
+// filtrar si un email está registrado: validamos en silencio y siempre
+// devolvemos `ok: true` al cliente (el form muestra el mismo mensaje
+// genérico independientemente del resultado real). Rate-limit y expiry
+// del token los maneja Supabase (default: 1 email/60s, 1h de validez).
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+
+  // Validación silenciosa: emails inválidos no disparan el envío,
+  // pero la respuesta al cliente es la misma → no hay enumeración.
+  if (email && email.includes('@') && email.length <= 254) {
+    const supabase = createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/auth/callback?next=/cuenta/actualizar-password`
+    });
+  }
+
+  return { ok: true };
+}
+
+// Actualiza la password del user actualmente autenticado. Requiere sesión
+// activa (la del flow de recovery o la de un user ya logueado). Tras el
+// cambio cerramos sesión para forzar re-login con la nueva password
+// — esto, sumado a la rotación de refresh tokens que hace Supabase al
+// cambiar la password, invalida sesiones residuales en otros dispositivos.
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get('password') || '');
+  const confirm  = String(formData.get('confirm')  || '');
+
+  if (password.length < 8) {
+    return { error: 'La contraseña tiene que tener al menos 8 caracteres' };
+  }
+  if (password.length > 72) {
+    // Límite de bcrypt usado por Supabase Auth.
+    return { error: 'La contraseña es demasiado larga (máx 72 caracteres)' };
+  }
+  if (password !== confirm) {
+    return { error: 'Las contraseñas no coinciden' };
+  }
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Tu sesión expiró. Pedí un nuevo link de recuperación.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    // Mensaje genérico — no exponer detalles internos del provider.
+    return { error: 'No pudimos actualizar la contraseña. Probá de nuevo.' };
+  }
+
+  await supabase.auth.signOut();
+  return { ok: true };
 }

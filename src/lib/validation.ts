@@ -29,7 +29,7 @@ export const TIMEZONE_RE = /^[A-Za-z_]+\/[A-Za-z_]+(?:\/[A-Za-z_]+)?$/;
 // nadie registre una barbería con slug "perfil" que pise esas rutas.
 export const RESERVED_SLUGS = new Set([
   's', 'shop', 'admin', 'api', 'auth', 'login', 'registro', 'onboarding',
-  'demo', 'desarrollo', 'desa',
+  'demo', 'desarrollo', 'desa', 'cuenta',
   'perfil', 'confirmacion', 'reservar', 'mis-turnos', 'equipo'
 ]);
 

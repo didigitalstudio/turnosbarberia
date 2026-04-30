@@ -23,7 +23,7 @@ function sanitizeNext(raw: string | null): string | null {
 }
 
 const RESERVED_SLUGS = new Set([
-  'api', 'auth', 'shop', 'login', 'registro',
+  'api', 'auth', 'shop', 'login', 'registro', 'cuenta',
   'demo', 'desarrollo', 'onboarding', 'admin', 's', 'desa'
 ]);
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,40}[a-z0-9]$/;

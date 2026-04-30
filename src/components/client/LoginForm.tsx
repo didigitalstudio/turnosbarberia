@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@/components/shared/Icon';
 import { Toast } from '@/components/shared/Toast';
 import { sendMagicLink, signInWithPassword } from '@/app/actions/auth';
 
 type Mode = 'password' | 'magic';
+type Notice = { tone: 'error' | 'success'; text: string };
 
 const MODE_LABELS: Record<Mode, string> = {
   password: 'Tengo cuenta',
@@ -15,11 +16,19 @@ const MODE_LABELS: Record<Mode, string> = {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pendingForm, startForm] = useTransition();
-  const [msg, setMsg] = useState<{ text: string } | null>(null);
+  const [msg, setMsg] = useState<Notice | null>(null);
   const [mode, setMode] = useState<Mode>('password');
   const [sentToEmail, setSentToEmail] = useState<string | null>(null);
   const [sentName, setSentName] = useState<string>('');
+
+  // Banner de éxito al volver desde el flow de actualización de password.
+  useEffect(() => {
+    if (searchParams.get('reset') === '1') {
+      setMsg({ tone: 'success', text: 'Contraseña actualizada. Iniciá sesión con la nueva.' });
+    }
+  }, [searchParams]);
 
   if (sentToEmail) {
     return (
@@ -82,7 +91,7 @@ export function LoginForm() {
             onSubmit={(fd) => startForm(async () => {
               setMsg(null);
               const res = await signInWithPassword(fd);
-              if (res?.error) setMsg({ text: res.error });
+              if (res?.error) setMsg({ tone: 'error', text: res.error });
               else router.push(res?.dest || '/');
             })}
             onClearMsg={() => setMsg(null)}
@@ -96,7 +105,7 @@ export function LoginForm() {
               const nameVal = String(fd.get('name') || '');
               const emailVal = String(fd.get('email') || '');
               const res = await sendMagicLink(fd);
-              if (res?.error) setMsg({ text: res.error });
+              if (res?.error) setMsg({ tone: 'error', text: res.error });
               else {
                 setSentName(nameVal);
                 setSentToEmail(emailVal);
@@ -125,7 +134,7 @@ function PasswordForm({
   pending, msg, onSubmit, onClearMsg
 }: {
   pending: boolean;
-  msg: { text: string } | null;
+  msg: Notice | null;
   onSubmit: (fd: FormData) => void;
   onClearMsg: () => void;
 }) {
@@ -161,7 +170,7 @@ function PasswordForm({
         {msg && (
           <Toast
             dark
-            tone="error"
+            tone={msg.tone}
             message={msg.text}
             onClose={onClearMsg}
             autoDismissMs={5000}
@@ -175,6 +184,15 @@ function PasswordForm({
         >
           {pending ? 'Iniciando sesión…' : (<>Entrar <Icon name="arrow-right" size={18} color="#fff"/></>)}
         </button>
+
+        <div className="mt-1 text-center">
+          <Link
+            href="/login/recuperar"
+            className="text-[12px] text-dark-muted underline underline-offset-4 hover:text-bg transition"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
       </form>
     </div>
   );
@@ -184,7 +202,7 @@ function MagicForm({
   pending, msg, onSubmit, onClearMsg
 }: {
   pending: boolean;
-  msg: { text: string } | null;
+  msg: Notice | null;
   onSubmit: (fd: FormData) => void;
   onClearMsg: () => void;
 }) {
@@ -223,7 +241,7 @@ function MagicForm({
         {msg && (
           <Toast
             dark
-            tone="error"
+            tone={msg.tone}
             message={msg.text}
             onClose={onClearMsg}
             autoDismissMs={5000}
