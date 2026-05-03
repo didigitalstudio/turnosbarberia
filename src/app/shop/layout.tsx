@@ -1,8 +1,12 @@
+export const dynamic = 'force-dynamic';
+
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminShop, getUserShops } from '@/lib/shop-context';
+import { getShopFeatures } from '@/lib/subscriptions';
 import { ShopSidebar } from '@/components/shop/ShopSidebar';
 import { ShopTabBar } from '@/components/shop/ShopTabBar';
+import { FeaturesProvider } from '@/components/providers/features-provider';
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -17,6 +21,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
   if (!shop) redirect('/login?error=no_shop');
 
   const userShops = await getUserShops(user.id);
+  const features = await getShopFeatures();
 
   return (
     <div className="min-h-screen bg-dark text-bg md:flex">
@@ -42,9 +47,11 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
             </div>
           </div>
         )}
-        <div className="flex-1 flex flex-col">
-          {children}
-        </div>
+        <FeaturesProvider features={features}>
+          <div className="flex-1 flex flex-col">
+            {children}
+          </div>
+        </FeaturesProvider>
         <div className="md:hidden">
           <ShopTabBar plan={shop.plan}/>
         </div>

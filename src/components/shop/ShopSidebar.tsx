@@ -1,9 +1,11 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon } from '@/components/shared/Icon';
 import { PRODUCT } from '@/lib/shop-info';
 import { ShopSwitcher, type ShopBrief } from '@/components/shop/ShopSwitcher';
+import { ProModal } from '@/components/ui/pro-modal';
 
 // Orden fijo (producto): Dashboard, Agenda, Caja, Stock, Equipo, Ajustes.
 // `proOnly` filtra ítems que solo aplican al plan Pro.
@@ -32,7 +34,8 @@ export function ShopSidebar({
 }) {
   const pathname = usePathname();
   const isPro = (shop.plan || '').toLowerCase() === 'pro';
-  const items = ALL_ITEMS.filter(i => !i.proOnly || isPro);
+  const items = ALL_ITEMS;
+  const [proModalFeature, setProModalFeature] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col h-full bg-dark text-bg">
@@ -59,6 +62,18 @@ export function ShopSidebar({
           const isActive =
             it.href === '/shop' ? pathname === '/shop' :
             pathname.startsWith(it.href);
+          if (it.proOnly && !isPro) {
+            return (
+              <button
+                key={it.id}
+                onClick={() => setProModalFeature(it.label)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-m text-[14px] font-medium w-full text-left text-bg/60 hover:bg-dark-card hover:text-bg/80 transition">
+                <Icon name={it.icon} size={18}/>
+                <span className="flex-1">{it.label}</span>
+                <span className="text-[9px] font-mono font-bold tracking-widest text-accent border border-accent/40 rounded px-1.5 py-0.5">PRO</span>
+              </button>
+            );
+          }
           return (
             <Link key={it.id} href={it.href}
               aria-current={isActive ? 'page' : undefined}
@@ -67,11 +82,12 @@ export function ShopSidebar({
                   ? 'bg-bg text-ink font-semibold'
                   : 'text-bg/85 hover:bg-dark-card hover:text-bg font-medium'}`}>
               <Icon name={it.icon} size={18}/>
-              <span>{it.label}</span>
+              <span className="flex-1">{it.label}</span>
             </Link>
           );
         })}
       </nav>
+      {proModalFeature && <ProModal feature={proModalFeature} onClose={() => setProModalFeature(null)} />}
 
       <div className="px-4 py-4 border-t border-dark-line">
         <div className="font-mono text-[9px] tracking-[2px] text-dark-muted">TU BARBERÍA</div>

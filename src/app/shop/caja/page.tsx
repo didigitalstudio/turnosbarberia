@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminShop } from '@/lib/shop-context';
+import { getShopFeatures } from '@/lib/subscriptions';
 import { partsInAR, SHOP_OFFSET } from '@/lib/tz';
 import { ShopHeader } from '@/components/shop/ShopHeader';
 import { CashView } from '@/components/shop/CashView';
+import { FeatureGate } from '@/components/ui/feature-gate';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +26,7 @@ export default async function ShopCashPage({
   const shop = await getAdminShop();
   if (!shop) redirect('/login?error=no_shop');
 
-  // Caja es feature Pro. En Starter mandamos al dashboard (mismo patrón
-  // que /shop/stock).
-  if ((shop.plan || '').toLowerCase() !== 'pro') redirect('/shop');
-
+  const features = await getShopFeatures();
   const todayAR = partsInAR(new Date()).date;
   const date = searchParams.date && DATE_RE.test(searchParams.date) ? searchParams.date : todayAR;
   const { startISO, endISO } = dayBoundsAR(date);
@@ -84,14 +83,16 @@ export default async function ShopCashPage({
   return (
     <main className="flex-1 flex flex-col mx-auto w-full max-w-[440px] md:max-w-none md:mx-0">
       <ShopHeader title="Caja" />
-      <CashView
-        sales={(sales as any) || []}
-        products={(products as any) || []}
-        expenses={(expenses as any) || []}
-        todayAppointments={todayAppointments}
-        date={date}
-        todayDate={todayAR}
-      />
+      <FeatureGate enabled={features.caja_plus ?? false} message="La Caja está disponible en el plan Pro">
+        <CashView
+          sales={(sales as any) || []}
+          products={(products as any) || []}
+          expenses={(expenses as any) || []}
+          todayAppointments={todayAppointments}
+          date={date}
+          todayDate={todayAR}
+        />
+      </FeatureGate>
     </main>
   );
 }
