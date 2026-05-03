@@ -7,6 +7,7 @@ import { getShopFeatures } from '@/lib/subscriptions';
 import { ShopSidebar } from '@/components/shop/ShopSidebar';
 import { ShopTabBar } from '@/components/shop/ShopTabBar';
 import { FeaturesProvider } from '@/components/providers/features-provider';
+import { AccountBlocked } from '@/components/AccountBlocked';
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -19,6 +20,19 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
 
   const shop = await getAdminShop();
   if (!shop) redirect('/login?error=no_shop');
+
+  // Gate: aprobado=false → bloqueo total; paused → suspendida
+  if ((shop as unknown as Record<string, unknown>).aprobado === false) {
+    return <AccountBlocked variant="pending" />
+  }
+  const { data: subData } = await supabase
+    .from('shop_subscriptions')
+    .select('estado')
+    .eq('shop_id', shop.id)
+    .maybeSingle()
+  if ((subData as unknown as Record<string, string> | null)?.estado === 'paused') {
+    return <AccountBlocked variant="paused" />
+  }
 
   const userShops = await getUserShops(user.id);
   const features = await getShopFeatures();

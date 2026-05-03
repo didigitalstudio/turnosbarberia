@@ -285,6 +285,27 @@ export async function createShop(input: CreateShopInput): Promise<{ error?: stri
     });
   } catch { /* silencioso */ }
 
+  // Webhook al panel admin DI (no bloqueante).
+  try {
+    const webhookUrl = process.env.DI_ADMIN_WEBHOOK_URL
+    const webhookSecret = process.env.DI_ADMIN_WEBHOOK_SECRET
+    if (webhookUrl && webhookSecret) {
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${webhookSecret}` },
+        body: JSON.stringify({
+          proyecto: 'turnosbarberia',
+          entity_type: 'shop',
+          entity_id: shopId,
+          auth_user_id: user.id,
+          email: user.email || '',
+          nombre: user.email || '',
+          datos_extra: { shop_name: d.shop.name, slug: shopRow.slug },
+        }),
+      }).catch(() => {})
+    }
+  } catch { /* silencioso */ }
+
   revalidatePath('/shop');
   revalidatePath(`/${shopRow.slug}`);
   revalidatePath('/', 'layout');
